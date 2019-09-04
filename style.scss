@@ -1,0 +1,32 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Tahoma;
+}
+body {
+  background-color: #1D1E22;
+}
+.box {
+  position: absolute;
+  top: 10px;
+  width:300px;
+  height:300px;
+  left: calc(50% - 500px);
+  #circle {
+    position: absolute;
+    top: 5px;
+    left: 360px;
+  }
+}
+.box2 {
+  position: absolute;
+  top: 10px;
+  width:300px;
+  height:300px;
+  left: calc(50% - 450px);
+  #innercircle {
+    position: absolute;
+    top: 50px;
+    left: 355px;
+  }
+}

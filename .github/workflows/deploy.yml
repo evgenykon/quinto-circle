@@ -26,7 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run generate
         env:
-          NUXT_APP_BASE_URL: /three-body-problem/
+          NUXT_APP_BASE_URL: /quinto-circle/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .output/public

@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: yarn
-      - run: corepack enable && yarn install --immutable
+      - run: yarn install --frozen-lockfile
       - run: yarn generate
         env:
           NUXT_APP_BASE_URL: /quinto-circle/

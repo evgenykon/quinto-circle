@@ -11,7 +11,10 @@
         <ScaleInfo />
       </div>
       <div class="main">
-        <CircleOfFifths />
+        <div class="main-inner">
+          <CircleOfFifths />
+          <MidiPlayer />
+        </div>
       </div>
       <div class="sidebar sidebar--right">
         <TheoryPanel />
@@ -67,5 +70,14 @@
   flex: 1;
   display: flex;
   justify-content: center;
+}
+
+.main-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 </style>

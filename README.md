@@ -1,38 +1,38 @@
 # quinto-circle
 
-Интерактивный квинтовый круг — инструмент для изучения гармонии, построения аккордовых последовательностей и их проигрывания.
+An interactive circle of fifths — a tool for exploring harmony, building chord progressions, and playing them back.
 
 ![quinto-circle](public/img.png)
 
-## Возможности
+## Features
 
-- **Квинтовый круг:** 12 нот по часовой стрелке, подсветка тоники и ступеней лада
-- **Выбор тональности:** мажор, натуральный/гармонический/мелодический минор
-- **Гамма и аккорды:** отображение ступеней I–VII с типами аккордов
-- **Теория:** справка по тональности, ступеням и хроматическим нотам
-- **Проигрыватель:** 50 встроенных паттернов, аккорды и арпеджио, 3 инструмента (пианино, гитара, орган), регулировка темпа, метроном
-- **Визуализация:** граф движения аккордов внутри круга, подсветка текущего аккорда
+- **Circle of fifths:** 12 notes arranged clockwise, highlighting the tonic and scale degrees
+- **Key selection:** major, natural/harmonic/melodic minor
+- **Scale & chords:** scale degrees I–VII with chord types
+- **Theory panel:** reference for key signatures, scale degrees, and chromatic notes
+- **Player:** 50 built-in chord progressions, chords and arpeggios, 3 instruments (piano, guitar, organ), adjustable tempo, metronome
+- **Visualization:** chord movement graph inside the circle, current chord highlighting
 
-## Запуск
+## Getting started
 
 ```bash
-make build    # сборка образа
-make dev      # запуск dev-сервера на http://localhost:3000
-make down     # остановка
+make build    # build Docker image
+make dev      # start dev server at http://localhost:3000
+make down     # stop the server
 ```
 
-## Стек
+## Stack
 
 - Nuxt 3 + Vue 3
-- Web Audio API (синтез без внешних библиотек)
-- SVG-графика
+- Web Audio API (synthesis without external libraries)
+- SVG graphics
 - Docker
 
-## Разработка
+## Development
 
-Команды выполняются внутри Docker-контейнера:
+Commands run inside the Docker container:
 
 ```bash
 make run cmd="yarn add <package>"
-make down && make dev   # перезапуск после добавления зависимостей
+make down && make dev   # restart after adding dependencies
 ```

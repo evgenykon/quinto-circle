@@ -124,11 +124,22 @@ function getParallelKey(circlePos: number, mode: Mode): string {
 const sharedTonic = ref(0)
 const sharedMode = ref<Mode>('major')
 const sharedSelection = ref<Selection>({ type: 'key' })
+const sharedProgressionRoots = ref<number[]>([])
+const sharedCurrentStep = ref(-1)
+
+export interface ProgressionStep {
+  degreeIndex: number
+  roman: string
+  notes: string[]
+  label: string
+}
 
 export function useCircleOfFifths() {
   const tonic = sharedTonic
   const mode = sharedMode
   const selection = sharedSelection
+  const progressionRoots = sharedProgressionRoots
+  const currentStep = sharedCurrentStep
 
   const circleNotes = computed<PositionedNote[]>(() =>
     CIRCLE_ORDER.map((chromaticIndex, i) => ({
@@ -237,5 +248,7 @@ export function useCircleOfFifths() {
     MODE_CHAR_INTERVAL,
     CHROMATIC_NOTES,
     CIRCLE_ORDER,
+    progressionRoots,
+    currentStep,
   }
 }

@@ -2,7 +2,7 @@
 import { useCircleOfFifths } from '~/composables/useCircleOfFifths'
 import type { PositionedNote } from '~/composables/useCircleOfFifths'
 
-const { circleNotes, tonic, setTonic, isInScale, getDegreeInfo, selectKey, selectDegree, selectNonScale, getDegreeIndexFromCircle } = useCircleOfFifths()
+const { circleNotes, tonic, setTonic, isInScale, getDegreeInfo, selectKey, selectDegree, selectNonScale, getDegreeIndexFromCircle, progressionRoots, currentStep } = useCircleOfFifths()
 
 const handleClick = (n: PositionedNote) => {
   if (tonic.value === n.index) {
@@ -22,6 +22,8 @@ const CENTER = VIEW / 2
 const OUTER_R = 180
 const INNER_R = 140
 const NOTE_R = 22
+const ARROW_R = INNER_R - NOTE_R - 4
+const CP_R = 60
 
 const angle = (index: number) => (index * 30 - 90) * (Math.PI / 180)
 
@@ -35,14 +37,78 @@ const innerPos = (note: PositionedNote) => ({
   y: CENTER + INNER_R * Math.sin(angle(note.index)),
 })
 
+const graphPos = (circleIndex: number) => ({
+  x: CENTER + ARROW_R * Math.cos(angle(circleIndex)),
+  y: CENTER + ARROW_R * Math.sin(angle(circleIndex)),
+})
+
 const displayName = (n: PositionedNote) => {
   if (tonic.value === n.index) return n.note.name
   return isInScale(n.index) ? n.note.name : (n.note.altName ?? n.note.name)
 }
+
+interface ArrowArc {
+  path: string
+  from: number
+  to: number
+  active: boolean
+}
+
+const arrows = computed<ArrowArc[]>(() => {
+  const roots = progressionRoots.value
+  const step = currentStep.value
+  const result: ArrowArc[] = []
+  for (let i = 0; i < roots.length; i++) {
+    const j = (i + 1) % roots.length
+    const from = roots[i]
+    const to = roots[j]
+    const isActive = step >= 0 && j === step
+    if (from === to) {
+      const a = angle(from)
+      const p = graphPos(from)
+      const loopR = 14
+      const cp = {
+        x: p.x - loopR * Math.cos(a),
+        y: p.y - loopR * Math.sin(a),
+      }
+      result.push({
+        path: `M${p.x.toFixed(1)},${p.y.toFixed(1)} Q${cp.x.toFixed(1)},${cp.y.toFixed(1)} ${p.x.toFixed(1)},${p.y.toFixed(1)}`,
+        from,
+        to,
+        active: isActive,
+      })
+      continue
+    }
+    const a1 = angle(from)
+    const a2 = angle(to)
+    const p1 = graphPos(from)
+    const p2 = graphPos(to)
+    const midA = (a1 + a2) / 2
+    const cp = {
+      x: CENTER + CP_R * Math.cos(midA),
+      y: CENTER + CP_R * Math.sin(midA),
+    }
+    result.push({
+      path: `M${p1.x.toFixed(1)},${p1.y.toFixed(1)} Q${cp.x.toFixed(1)},${cp.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`,
+      from,
+      to,
+      active: isActive,
+    })
+  }
+  return result
+})
 </script>
 
 <template>
   <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${VIEW} ${VIEW}`" class="circle-svg">
+    <defs>
+      <marker id="arr" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0, 12 5, 0 10" fill="var(--muted-foreground)" stroke="none" />
+      </marker>
+      <marker id="arr-active" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+        <polygon points="0 0, 12 5, 0 10" fill="var(--accent)" stroke="none" />
+      </marker>
+    </defs>
     <circle
       :cx="CENTER" :cy="CENTER" :r="OUTER_R + NOTE_R + 4"
       fill="none" stroke="var(--border)" stroke-width="1"
@@ -74,7 +140,6 @@ const displayName = (n: PositionedNote) => {
         {{ displayName(n) }}
       </text>
     </g>
-    <!-- degree indicators -->
     <g v-for="n in circleNotes" :key="'deg-' + n.index">
       <text
         v-if="isInScale(n.index) && tonic !== n.index"
@@ -85,12 +150,26 @@ const displayName = (n: PositionedNote) => {
         {{ getDegreeInfo(n.index)?.roman }}
       </text>
     </g>
+    <path
+      v-for="(a, i) in arrows" :key="i"
+      :d="a.path"
+      fill="none"
+      :stroke="a.active ? 'var(--accent)' : 'var(--muted-foreground)'"
+      :stroke-width="a.active ? 2 : 1.5"
+      stroke-linecap="round"
+      :marker-end="a.active ? 'url(#arr-active)' : 'url(#arr)'"
+      class="arrow-path"
+    />
   </svg>
 </template>
 
 <style scoped>
 .circle-svg {
   display: block;
+}
+
+.arrow-path {
+  transition: stroke 0.15s;
 }
 
 .note-group {

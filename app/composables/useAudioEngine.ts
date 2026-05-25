@@ -178,9 +178,11 @@ export function useAudioEngine() {
   ) => {
     const audioCtx = getCtx()
     const inst = createInstrument(instrument, audioCtx)
-    const notes = noteNames.map((name) => {
-      const midi = (NOTE_TO_MIDI[name] ?? 60) + (octave - 4) * 12
-      return midiToFreq(midi)
+    const rootMidi = (NOTE_TO_MIDI[noteNames[0]] ?? 60) + (octave - 4) * 12
+    const notes = noteNames.map((name, i) => {
+      let m = (NOTE_TO_MIDI[name] ?? 60) + (octave - 4) * 12
+      if (i > 0 && m < rootMidi) m += 12
+      return midiToFreq(m)
     })
 
     if (style === 'chord') {
@@ -195,8 +197,8 @@ export function useAudioEngine() {
         timeoutIds.push(id)
       })
     } else {
-      const noteDuration = duration / (notes.length * 2 - 1)
-      const arpNotes = [...notes, ...notes.slice(0, -1).reverse()]
+      const noteDuration = duration / notes.length
+      const arpNotes = notes
 
       arpNotes.forEach((freq, i) => {
         const time = startTime + i * noteDuration

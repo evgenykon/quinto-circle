@@ -3,13 +3,13 @@ import { useCircleOfFifths } from '~/composables/useCircleOfFifths'
 import { useAudioEngine } from '~/composables/useAudioEngine'
 import type { Instrument, Style } from '~/composables/useAudioEngine'
 
-const { scaleDegrees, mode, selectDegree, selection } = useCircleOfFifths()
+const { scaleDegrees, mode, selectDegree, selection, progressionRoots, currentStep: sharedCurrentStep, CHROMATIC_NOTES, CIRCLE_ORDER } = useCircleOfFifths()
 const { scheduleChord, scheduleMetronome, stop: audioStop, getCtx } = useAudioEngine()
 
 const instrument = ref<Instrument>('piano')
 const style = ref<Style>('chord')
 const playing = ref(false)
-const currentStep = ref(-1)
+const localCurrentStep = ref(-1)
 const selectedPattern = ref(0)
 const bpm = ref(100)
 const metronomeOn = ref(false)
@@ -102,11 +102,28 @@ const progression = computed(() => {
 
 const chordDuration = computed(() => 60 / bpm.value * 2)
 
+function getCircleIndexFromNote(noteName: string): number {
+  const chromatic = CHROMATIC_NOTES.findIndex(
+    (n) => n.name === noteName || n.altName === noteName
+  )
+  const ci = CIRCLE_ORDER.indexOf(chromatic)
+  return ci >= 0 ? ci : 0
+}
+
+watch(progression, (p) => {
+  progressionRoots.value = p.map((s) => getCircleIndexFromNote(s.notes[0]))
+  if (!playing.value) sharedCurrentStep.value = -1
+}, { immediate: true })
+
+watch(localCurrentStep, (v) => {
+  sharedCurrentStep.value = v
+})
+
 watch(bpm, () => {
   if (playing.value) {
     stopSequence()
     playing.value = true
-    currentStep.value = 0
+    localCurrentStep.value = 0
     scheduleLoop()
   }
 })
@@ -129,7 +146,7 @@ function stopSequence() {
     visualTimer = null
   }
   audioStop()
-  currentStep.value = -1
+  localCurrentStep.value = -1
 }
 
 function scheduleLoop() {
@@ -185,8 +202,8 @@ function scheduleLoop() {
     const cycleLen = steps.length * step
     const pos = elapsed % cycleLen
     const idx = Math.floor(pos / step) % steps.length
-    if (idx !== currentStep.value) {
-      currentStep.value = idx
+    if (idx !== localCurrentStep.value) {
+      localCurrentStep.value = idx
     }
   }, 100)
 }
@@ -200,7 +217,7 @@ function togglePlay() {
   if (!progression.value.length) return
 
   playing.value = true
-  currentStep.value = 0
+  localCurrentStep.value = 0
   scheduleLoop()
 }
 </script>
@@ -226,7 +243,7 @@ function togglePlay() {
         v-for="(step, i) in progression"
         :key="i"
         :class="['mp-step', {
-          'mp-step--active': playing && currentStep === i,
+          'mp-step--active': playing && localCurrentStep === i,
           'mp-step--selected': !playing && selection.type === 'degree' && selection.index === step.degreeIndex,
         }]"
         @click="selectDegree(step.degreeIndex)"

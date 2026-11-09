@@ -21,8 +21,8 @@ for (const style of STYLES) {
   check(`${style.id}: центр = C`, root.chord.name === 'C', root.chord.name)
   check(`${style.id}: есть ветвление`, totalNodes > 3, `${totalNodes} узлов`)
   check(`${style.id}: глубина ≤ 2 шага`, maxLevel <= 2, `maxLevel=${maxLevel}`)
-  check(`${style.id}: без повторов ступени в пути`,
-    nodes.every((n) => new Set(n.path.map((c) => c.degree)).size === n.path.length))
+  check(`${style.id}: без повторов аккорда в пути`,
+    nodes.every((n) => new Set(n.path.map((c) => c.key)).size === n.path.length))
   check(`${style.id}: каждый лист умеет вернуться на центр`,
     nodes.filter((n) => n.children.length === 0).every((n) => n.canReturn))
   check(`${style.id}: длина ветки не больше глубины`,
@@ -46,6 +46,22 @@ check('C-мажор: все аккорды диатоничны', flattenTree(cR
 const am = buildChordTree({ tonicPc: 9, mode: 'natural_minor', style: 'pop', maxDepth: 3 })
 check('a-moll: центр = Am', am.root.chord.name === 'Am', am.root.chord.name)
 check('a-moll: у Am минорный цвет', am.root.chord.quality === 'min')
+
+// заимствованные ступени: рок должен давать bVII и bIII в C-мажоре
+const rock = buildChordTree({ tonicPc: 0, mode: 'major', style: 'rock', maxDepth: 4 })
+const rockNames = new Set(flattenTree(rock.root).map((n) => n.chord.name))
+check('рок: есть bVII (Bb)', rockNames.has('Bb'), [...rockNames].join(','))
+check('рок: есть bIII (Eb)', rockNames.has('Eb'))
+check('рок: заимствованные помечены ступенью bVII',
+  flattenTree(rock.root).some((n) => n.chord.roman === 'bVII'))
+check('блюз: есть bVII (Bb)', flattenTree(buildChordTree({ tonicPc: 0, mode: 'major', style: 'blues', maxDepth: 4 }).root)
+  .some((n) => n.chord.roman === 'bVII'))
+
+// расширение рока и блюза: ветвей заметно больше, чем в исходной версии
+const bluesD4 = buildChordTree({ tonicPc: 0, mode: 'major', style: 'blues', maxDepth: 4 })
+check('блюз: глубина 4 даёт ≥ 15 узлов', bluesD4.totalNodes >= 15, `${bluesD4.totalNodes}`)
+check('рок: глубина 4 даёт ≥ 25 узлов', rock.totalNodes >= 25, `${rock.totalNodes}`)
+check('блюз: последовательности до 4 аккордов', bluesD4.maxLevel + 1 >= 3, `уровней ${bluesD4.maxLevel + 1}`)
 
 // цвета
 const cMaj = chordColor(0, 'maj')

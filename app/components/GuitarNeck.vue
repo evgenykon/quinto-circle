@@ -4,6 +4,10 @@ import { midiToName } from '~/composables/useChordDetector'
 const props = defineProps<{
   modelValue: (number | null)[]
   tuning: number[]
+  /** Только показ аппликатуры: без кликов, маркеров и подсказки. */
+  readonly?: boolean
+  /** Стартовый лад видимого окна. */
+  initialFret?: number
 }>()
 
 const emit = defineEmits<{
@@ -14,8 +18,15 @@ const emit = defineEmits<{
 const TOTAL_FRETS = 15
 const VISIBLE_FRETS = 5
 
-const startFret = ref(1)
+const startFret = ref(props.initialFret ?? 1)
 const maxStartFret = TOTAL_FRETS - VISIBLE_FRETS + 1
+
+watch(
+  () => props.initialFret,
+  (value) => {
+    if (value && value >= 1) startFret.value = Math.min(maxStartFret, value)
+  },
+)
 
 const LEFT = 52
 const NUT_Y = 78
@@ -79,6 +90,7 @@ const markerLabel = (index: number) => {
 const setStrings = (next: (number | null)[]) => emit('update:modelValue', next)
 
 const selectFret = (index: number, fret: number) => {
+  if (props.readonly) return
   const next = [...props.modelValue]
   next[index] = next[index] === fret ? null : fret
   setStrings(next)
@@ -86,12 +98,14 @@ const selectFret = (index: number, fret: number) => {
 }
 
 const muteString = (index: number) => {
+  if (props.readonly) return
   const next = [...props.modelValue]
   next[index] = null
   setStrings(next)
 }
 
 const toggleOpen = (index: number) => {
+  if (props.readonly) return
   const next = [...props.modelValue]
   const isOpen = next[index] === 0
   next[index] = isOpen ? null : 0
@@ -104,6 +118,7 @@ const shift = (direction: number) => {
 }
 
 const onWheel = (event: WheelEvent) => {
+  if (props.readonly) return
   const delta = event.deltaY || event.deltaX
   if (!delta) return
   event.preventDefault()
@@ -338,7 +353,7 @@ const hiddenDots = computed(() =>
       </svg>
     </div>
 
-    <p class="neck-hint">
+    <p v-if="!readonly" class="neck-hint">
       Клик по ладу — зажать струну, повторный клик — снять. Колесо мыши или ▲▼ — двигать окно по грифу.
       Правый клик — заглушить струну. Верхний ряд: ○ — открытая струна, × — не играет.
     </p>

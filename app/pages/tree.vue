@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import {
+  chordFingering,
+  fingeringWindow,
   MAJOR_MODES,
   MINOR_MODES,
   MODE_LABELS,
+  MOOD_LABELS,
   STYLES,
   TREE_NOTE_NAMES,
   buildChordTree,
   chordMidiNotes,
   tonicChord,
+  type ChordMood,
   type StyleId,
   type TreeMode,
   type TreeNode,
 } from '~/composables/useChordTree'
+import { STANDARD_TUNING } from '~/composables/useChordDetector'
 import { useAudioEngine } from '~/composables/useAudioEngine'
 
 useHead({ title: 'Дерево аккордов — quinto-circle' })
@@ -21,6 +26,8 @@ const quality = ref<'maj' | 'min'>('maj')
 const mode = ref<TreeMode>('major')
 const style = ref<StyleId>('functional')
 const depth = ref(3)
+const sevenths = ref(false)
+const mood = ref<ChordMood | 'any'>('any')
 const selectedId = ref<string | null>(null)
 
 const { playNotes, stop } = useAudioEngine()
@@ -32,23 +39,46 @@ watch(quality, (value) => {
   if (!allowed.includes(mode.value)) mode.value = allowed[0]!
 })
 
-const tree = computed(() =>
-  buildChordTree({ tonicPc: tonicPc.value, mode: mode.value, style: style.value, maxDepth: depth.value }),
-)
+const styleInfo = computed(() => STYLES.find((item) => item.id === style.value))
 
-const center = computed(() => tonicChord(tonicPc.value, mode.value))
-
-const selectedPath = computed(() => {
+const allNodes = computed(() => {
   const flat: TreeNode[] = []
   const walk = (node: TreeNode) => {
     flat.push(node)
     node.children.forEach(walk)
   }
   walk(tree.value.root)
-  return flat.find((node) => node.id === selectedId.value)?.path ?? [center.value]
+  return flat
 })
 
-const styleInfo = computed(() => STYLES.find((item) => item.id === style.value))
+const selectedNode = computed(() => allNodes.value.find((node) => node.id === selectedId.value) ?? null)
+
+const fingering = computed(() =>
+  selectedNode.value ? chordFingering(selectedNode.value.chord, STANDARD_TUNING) : null,
+)
+
+const fingeringStart = computed(() => (fingering.value ? fingeringWindow(fingering.value) : 1))
+
+watch(style, () => {
+  sevenths.value = styleInfo.value?.chords === 'sevenths'
+})
+
+const tree = computed(() =>
+  buildChordTree({
+    tonicPc: tonicPc.value,
+    mode: mode.value,
+    style: style.value,
+    maxDepth: depth.value,
+    sevenths: sevenths.value,
+    mood: mood.value,
+  }),
+)
+
+const isEmpty = computed(() => tree.value.root.children.length === 0)
+
+const center = computed(() => tonicChord(tonicPc.value, mode.value))
+
+const selectedPath = computed(() => selectedNode.value?.path ?? [center.value])
 
 const chordWord = (count: number) => {
   const mod10 = count % 10
@@ -60,8 +90,8 @@ const chordWord = (count: number) => {
 
 const select = (node: TreeNode) => {
   selectedId.value = node.id === selectedId.value ? null : node.id
+  // Клик только показывает аккорд на грифе; звук — по кнопке «Сыграть».
   stop()
-  playNotes('piano', chordMidiNotes(node.chord), 1.3)
 }
 
 let timers: number[] = []
@@ -133,6 +163,21 @@ onBeforeUnmount(() => {
       </label>
 
       <label class="field">
+        <span class="field-label">Аккорды</span>
+        <select v-model="sevenths" class="select">
+          <option :value="false">Трезвучия</option>
+          <option :value="true">Септаккорды</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Настроение</span>
+        <select v-model="mood" class="select">
+          <option v-for="(label, value) in MOOD_LABELS" :key="value" :value="value">{{ label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
         <span class="field-label">Глубина</span>
         <select v-model.number="depth" class="select select--note">
           <option v-for="value in 7" :key="value" :value="value + 1">
@@ -144,7 +189,33 @@ onBeforeUnmount(() => {
       <button type="button" class="button" @click="reset">Сброс</button>
     </section>
 
-    <ChordTree class="tree-area" :root="tree.root" :selected-id="selectedId" @select="select" />
+    <div class="workspace">
+      <ChordTree class="tree-area" :root="tree.root" :selected-id="selectedId" @select="select" />
+
+      <aside class="chord-card">
+        <template v-if="selectedNode && fingering">
+          <div class="chord-head">
+            <span class="chord-name" :style="{ color: selectedNode.chord.color }">
+              {{ selectedNode.chord.name }}
+            </span>
+            <span class="chord-roman">{{ selectedNode.chord.roman }}</span>
+          </div>
+          <div class="chord-neck">
+            <GuitarNeck
+              :model-value="fingering"
+              :tuning="STANDARD_TUNING"
+              readonly
+              :initial-fret="fingeringStart"
+            />
+          </div>
+        </template>
+        <p v-else class="chord-empty">Кликни по аккорду — покажу его на грифе</p>
+      </aside>
+    </div>
+
+    <p v-if="isEmpty" class="empty">
+      Для этого настроения в выбранном стиле нет последовательностей — ослабь фильтр или смени стиль.
+    </p>
 
     <footer class="footer">
       <div class="path">
@@ -180,6 +251,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .page {
+  position: relative;
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -275,9 +347,73 @@ onBeforeUnmount(() => {
   min-width: 76px;
 }
 
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+
 .tree-area {
   flex: 1;
   min-height: 0;
+}
+
+.chord-card {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  min-height: 0;
+}
+
+.chord-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.chord-name {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.chord-roman {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.chord-empty {
+  margin: auto;
+  font-size: 12px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.chord-neck {
+  position: relative;
+  height: 440px;
+  margin: auto 0;
+}
+
+.empty {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  text-align: center;
+  max-width: 420px;
 }
 
 .footer {

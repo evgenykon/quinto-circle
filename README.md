@@ -18,8 +18,9 @@ An interactive circle of fifths — a tool for exploring harmony, building chord
   open strings and tuning presets — the chord name is recognized automatically
   ([`/chords`](https://evgenykon.github.io/quinto-circle/chords))
 - **Chord tree:** pick a central chord and see every allowed progression branching out from it in all
-  directions; branches end on a chord that can return to the centre. Filter by mode and style
-  (functional, pop, rock, blues, jazz) and depth; chords keep one colour (major warm, minor cold)
+  directions; branches end on a chord that can return to the centre. Filter by mode, style
+  (functional, pop, rock, blues, jazz), triads/sevenths, mood (light, sad, tense) and depth 2–8.
+  Chords keep one colour (major warm, minor cold); clicking a chord shows its fingering on the neck
   ([`/tree`](https://evgenykon.github.io/quinto-circle/tree))
 
 ## Getting started

@@ -17,15 +17,36 @@ const VISIBLE_FRETS = 4
 const startFret = ref(1)
 const maxStartFret = TOTAL_FRETS - VISIBLE_FRETS + 1
 
-const STRING_GAP = 36
 const LEFT = 52
-const RIGHT = LEFT + STRING_GAP * 5
-const WIDTH = RIGHT + 52
 const NUT_Y = 78
-const FRET_H = 56
 const MARKER_Y = 38
-const NECK_BOTTOM = NUT_Y + FRET_H * VISIBLE_FRETS
-const HEIGHT = NECK_BOTTOM + 44
+const FOOT = 44
+const MIN_FRET_H = 44
+
+const canvas = ref<HTMLElement | null>(null)
+const canvasHeight = ref(0)
+
+let observer: ResizeObserver | null = null
+
+onMounted(() => {
+  const measure = () => {
+    canvasHeight.value = canvas.value?.clientHeight ?? 0
+  }
+  if (canvas.value) {
+    observer = new ResizeObserver(measure)
+    observer.observe(canvas.value)
+  }
+  measure()
+})
+
+onBeforeUnmount(() => observer?.disconnect())
+
+/** The neck fills the available page height, so the four visible frets stretch with it. */
+const fretH = computed(() =>
+  Math.max(MIN_FRET_H, (canvasHeight.value - NUT_Y - FOOT) / VISIBLE_FRETS),
+)
+const neckBottom = computed(() => NUT_Y + fretH.value * VISIBLE_FRETS)
+const svgHeight = computed(() => neckBottom.value + FOOT)
 
 const INLAYS = [3, 5, 7, 9, 12, 15]
 
@@ -33,9 +54,14 @@ const visibleFrets = computed(() =>
   Array.from({ length: VISIBLE_FRETS }, (_, i) => startFret.value + i),
 )
 
-const stringX = (index: number) => LEFT + index * STRING_GAP
-const fretY = (fret: number) => NUT_Y + (fret - startFret.value) * FRET_H
-const cellCenterY = (fret: number) => fretY(fret) + FRET_H / 2
+/** Ширина грифа подстраивается под высоту, чтобы лады не выглядели вытянутыми. */
+const stringGap = computed(() => Math.min(78, Math.max(36, fretH.value * 0.6)))
+const neckRight = computed(() => LEFT + stringGap.value * 5)
+const svgWidth = computed(() => neckRight.value + 52)
+
+const stringX = (index: number) => LEFT + index * stringGap.value
+const fretY = (fret: number) => NUT_Y + (fret - startFret.value) * fretH.value
+const cellCenterY = (fret: number) => fretY(fret) + fretH.value / 2
 
 const stringWidth = (index: number) => 2.6 - index * 0.26
 
@@ -107,7 +133,7 @@ const hiddenDots = computed(() =>
 </script>
 
 <template>
-  <div class="neck">
+  <div class="neck" :style="{ width: `${svgWidth}px` }">
     <div class="neck-toolbar">
       <span class="neck-range">Лады {{ startFret }}–{{ startFret + VISIBLE_FRETS - 1 }}</span>
       <div class="neck-arrows">
@@ -121,21 +147,22 @@ const hiddenDots = computed(() =>
       </div>
     </div>
 
-    <svg
-      :width="WIDTH"
-      :height="HEIGHT"
-      :viewBox="`0 0 ${WIDTH} ${HEIGHT}`"
-      class="neck-svg"
-      @wheel="onWheel"
-    >
+    <div ref="canvas" class="neck-canvas">
+      <svg
+        :width="svgWidth"
+        :height="svgHeight"
+        :viewBox="`0 0 ${svgWidth} ${svgHeight}`"
+        class="neck-svg"
+        @wheel="onWheel"
+      >
       <!-- кликабельные ячейки ладов -->
       <g v-for="fret in visibleFrets" :key="`cells-${fret}`">
         <g v-for="(_, index) in tuning" :key="`cell-${fret}-${index}`">
           <rect
-            :x="stringX(index) - STRING_GAP / 2"
+            :x="stringX(index) - stringGap / 2"
             :y="fretY(fret)"
-            :width="STRING_GAP"
-            :height="FRET_H"
+            :width="stringGap"
+            :height="fretH"
             class="cell"
             @click="selectFret(index, fret)"
             @contextmenu.prevent="muteString(index)"
@@ -159,18 +186,18 @@ const hiddenDots = computed(() =>
           <template v-if="isVisible(fret)">
             <circle
               v-if="fret !== 12"
-              :cx="(LEFT + RIGHT) / 2"
+              :cx="(LEFT + neckRight) / 2"
               :cy="cellCenterY(fret)"
               r="5"
             />
             <template v-else>
               <circle
-                :cx="(LEFT + RIGHT) / 2 - STRING_GAP * 0.9"
+                :cx="(LEFT + neckRight) / 2 - stringGap * 0.9"
                 :cy="cellCenterY(fret)"
                 r="5"
               />
               <circle
-                :cx="(LEFT + RIGHT) / 2 + STRING_GAP * 0.9"
+                :cx="(LEFT + neckRight) / 2 + stringGap * 0.9"
                 :cy="cellCenterY(fret)"
                 r="5"
               />
@@ -184,22 +211,22 @@ const hiddenDots = computed(() =>
         <line
           v-for="fret in visibleFrets"
           :key="`fret-${fret}`"
-          :x1="LEFT - STRING_GAP / 2"
-          :x2="RIGHT + STRING_GAP / 2"
+          :x1="LEFT - stringGap / 2"
+          :x2="neckRight + stringGap / 2"
           :y1="fretY(fret)"
           :y2="fretY(fret)"
         />
         <line
-          :x1="LEFT - STRING_GAP / 2"
-          :x2="RIGHT + STRING_GAP / 2"
-          :y1="NECK_BOTTOM"
-          :y2="NECK_BOTTOM"
+          :x1="LEFT - stringGap / 2"
+          :x2="neckRight + stringGap / 2"
+          :y1="neckBottom"
+          :y2="neckBottom"
         />
         <rect
           v-if="startFret === 1"
-          :x="LEFT - STRING_GAP / 2"
+          :x="LEFT - stringGap / 2"
           :y="NUT_Y - 4"
-          :width="RIGHT - LEFT + STRING_GAP"
+          :width="neckRight - LEFT + stringGap"
           height="5"
           class="nut"
         />
@@ -210,7 +237,7 @@ const hiddenDots = computed(() =>
         <text
           v-for="fret in visibleFrets"
           :key="`num-${fret}`"
-          :x="LEFT - STRING_GAP / 2 - 14"
+          :x="LEFT - stringGap / 2 - 14"
           :y="cellCenterY(fret)"
           text-anchor="middle"
           dominant-baseline="central"
@@ -227,7 +254,7 @@ const hiddenDots = computed(() =>
           :x1="stringX(index)"
           :y1="NUT_Y"
           :x2="stringX(index)"
-          :y2="NECK_BOTTOM"
+          :y2="neckBottom"
           :stroke-width="stringWidth(index)"
         />
       </g>
@@ -261,7 +288,7 @@ const hiddenDots = computed(() =>
           v-for="dot in hiddenDots"
           :key="`hidden-${dot.index}`"
           :x="stringX(dot.index)"
-          :y="dot.above ? NUT_Y - 16 : NECK_BOTTOM + 10"
+          :y="dot.above ? NUT_Y - 16 : neckBottom + 10"
           text-anchor="middle"
           dominant-baseline="central"
         >
@@ -302,13 +329,14 @@ const hiddenDots = computed(() =>
           v-for="(midi, index) in tuning"
           :key="`name-${index}`"
           :x="stringX(index)"
-          :y="NECK_BOTTOM + 30"
+          :y="neckBottom + 30"
           text-anchor="middle"
         >
           {{ midiToName(midi) }}
         </text>
       </g>
-    </svg>
+      </svg>
+    </div>
 
     <p class="neck-hint">
       Клик по ладу — зажать струну, повторный клик — снять. Колесо мыши или ▲▼ — двигать окно по грифу.
@@ -319,9 +347,15 @@ const hiddenDots = computed(() =>
 
 <style scoped>
 .neck {
+  /* Абсолютное растягивание: родитель (.neck-area) должен быть position: relative
+     с ненулевой высотой — тогда гриф занимает всю доступную высоту страницы. */
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  min-height: 0;
 }
 
 .neck-toolbar {
@@ -359,6 +393,13 @@ const hiddenDots = computed(() =>
 .neck-arrow:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.neck-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .neck-svg {
@@ -469,9 +510,9 @@ const hiddenDots = computed(() =>
 
 .neck-hint {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
   color: var(--muted-foreground);
-  max-width: 320px;
 }
 </style>

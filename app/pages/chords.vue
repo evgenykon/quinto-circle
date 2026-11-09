@@ -60,84 +60,82 @@ const playSingle = (midi: number) => {
 <template>
   <div class="page">
     <header class="header">
-      <div>
+      <div class="header-titles">
         <h1 class="title">Определить аккорд</h1>
         <p class="subtitle">Зажмите ноты на грифе — название аккорда построится автоматически</p>
       </div>
       <NuxtLink to="/" class="nav-link">← Квинтовый круг</NuxtLink>
     </header>
 
-    <div class="layout">
-      <section class="panel panel--neck">
-        <GuitarNeck v-model="strings" :tuning="tuning" @note="playSingle" />
-      </section>
+    <section class="result">
+      <div class="result-name" :class="{ 'result-name--unknown': result?.unknown }">
+        {{ result ? result.name : '—' }}
+      </div>
 
-      <section class="panel panel--result">
-        <div class="result">
-          <p class="result-label">Аккорд</p>
-          <p class="result-chord" :class="{ 'result-chord--unknown': result?.unknown }">
-            {{ result ? result.name : '—' }}
+      <div class="result-body">
+        <p v-if="!result" class="result-hint">Выберите хотя бы одну струну</p>
+        <template v-else>
+          <p class="result-notes">
+            <span v-for="note in result.notes" :key="note.name" class="note-chip">
+              {{ note.name }}<span v-if="note.degree" class="note-degree">{{ note.degree }}</span>
+            </span>
           </p>
-          <p v-if="!result" class="result-hint">Выберите хотя бы одну струну</p>
-          <template v-else>
-            <p class="result-notes">
-              <span
-                v-for="note in result.notes"
-                :key="note.name"
-                class="note-chip"
-              >
-                {{ note.name }}<span v-if="note.degree" class="note-degree">{{ note.degree }}</span>
-              </span>
-            </p>
-            <p class="result-meta">
-              Аппликатура: <code>{{ result.fingering }}</code>
-              <template v-if="!result.exact && !result.unknown"> · неполный/расширенный состав</template>
-            </p>
-          </template>
-        </div>
+          <p class="result-meta">
+            Аппликатура: <code>{{ result.fingering }}</code>
+            <template v-if="!result.exact && !result.unknown"> · неполный/расширенный состав</template>
+          </p>
+        </template>
+      </div>
 
-        <div class="actions">
-          <button type="button" class="button button--primary" :disabled="!playedMidi.length" @click="play">
-            Сыграть
-          </button>
-          <button type="button" class="button" @click="reset">Сброс</button>
-        </div>
+      <div class="actions">
+        <button type="button" class="button button--primary" :disabled="!playedMidi.length" @click="play">
+          Сыграть
+        </button>
+        <button type="button" class="button" @click="reset">Сброс</button>
+      </div>
+    </section>
 
-        <div class="tuning">
-          <label class="field">
-            <span class="field-label">Строй</span>
-            <select class="select" :value="tuningId" @change="applyPreset(($event.target as HTMLSelectElement).value)">
-              <option v-for="preset in TUNINGS" :key="preset.id" :value="preset.id">
-                {{ preset.label }}
-              </option>
-              <option value="custom">Свой строй</option>
-            </select>
-          </label>
+    <main class="neck-area">
+      <GuitarNeck v-model="strings" :tuning="tuning" @note="playSingle" />
+    </main>
 
-          <div class="tuning-grid">
-            <label v-for="(midi, index) in tuning" :key="index" class="tuning-item">
-              <span class="tuning-string">{{ 6 - index }} стр.</span>
-              <select
-                class="select select--small"
-                :value="midi"
-                @change="setStringTuning(index, ($event.target as HTMLSelectElement).value)"
-              >
-                <option v-for="option in tuningOptions(index)" :key="option" :value="option">
-                  {{ midiToLabel(option) }}
-                </option>
-              </select>
-            </label>
-          </div>
-        </div>
-      </section>
-    </div>
+    <footer class="tuning-bar">
+      <label class="field field--preset">
+        <span class="field-label">Строй</span>
+        <select class="select" :value="tuningId" @change="applyPreset(($event.target as HTMLSelectElement).value)">
+          <option v-for="preset in TUNINGS" :key="preset.id" :value="preset.id">
+            {{ preset.label }}
+          </option>
+          <option value="custom">Свой строй</option>
+        </select>
+      </label>
+
+      <div class="tuning-grid">
+        <label v-for="(midi, index) in tuning" :key="index" class="tuning-item">
+          <span class="tuning-string">{{ 6 - index }} стр.</span>
+          <select
+            class="select select--small"
+            :value="midi"
+            @change="setStringTuning(index, ($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="option in tuningOptions(index)" :key="option" :value="option">
+              {{ midiToLabel(option) }}
+            </option>
+          </select>
+        </label>
+      </div>
+    </footer>
   </div>
 </template>
 
 <style scoped>
 .page {
   width: 100%;
-  padding: 32px 24px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px 18px;
 }
 
 .header {
@@ -145,19 +143,18 @@ const playSingle = (midi: number) => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 32px;
 }
 
 .title {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  margin: 4px 0 0;
-  font-size: 14px;
+  margin: 3px 0 0;
+  font-size: 13px;
   color: var(--muted-foreground);
 }
 
@@ -177,55 +174,38 @@ const playSingle = (midi: number) => {
   background: var(--muted);
 }
 
-.layout {
+.result {
   display: flex;
-  gap: 32px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.panel {
+  align-items: center;
+  gap: 20px;
+  padding: 10px 18px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 20px;
 }
 
-.panel--neck {
-  flex: 0 0 auto;
-}
-
-.panel--result {
-  flex: 1 1 320px;
-  min-width: 300px;
-  max-width: 460px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.result-label {
-  margin: 0;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted-foreground);
-}
-
-.result-chord {
-  margin: 6px 0 0;
-  font-size: 40px;
+.result-name {
+  min-width: 150px;
+  font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
 
-.result-chord--unknown {
-  font-size: 22px;
+.result-name--unknown {
+  font-size: 19px;
   font-weight: 700;
 }
 
+.result-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .result-hint {
-  margin: 8px 0 0;
+  margin: 0;
   font-size: 13px;
   color: var(--muted-foreground);
 }
@@ -233,18 +213,18 @@ const playSingle = (midi: number) => {
 .result-notes {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 14px 0 0;
+  gap: 6px;
+  margin: 0;
 }
 
 .note-chip {
   display: inline-flex;
   align-items: baseline;
   gap: 3px;
-  padding: 4px 9px;
+  padding: 3px 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -255,7 +235,7 @@ const playSingle = (midi: number) => {
 }
 
 .result-meta {
-  margin: 12px 0 0;
+  margin: 0;
   font-size: 12px;
   color: var(--muted-foreground);
 }
@@ -270,10 +250,11 @@ const playSingle = (midi: number) => {
 .actions {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .button {
-  padding: 9px 16px;
+  padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
@@ -304,18 +285,29 @@ const playSingle = (midi: number) => {
   cursor: default;
 }
 
-.tuning {
+.neck-area {
+  position: relative;
+  flex: 1;
+  min-height: 360px;
+}
+
+.tuning-bar {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 16px;
+  align-items: flex-end;
+  gap: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.field--preset {
+  flex: 0 0 230px;
 }
 
 .field-label {
@@ -339,6 +331,8 @@ const playSingle = (midi: number) => {
 }
 
 .tuning-grid {
+  flex: 1;
+  min-width: 260px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
@@ -354,5 +348,24 @@ const playSingle = (midi: number) => {
   font-size: 10px;
   text-align: center;
   color: var(--muted-foreground);
+}
+
+@media (max-width: 720px) {
+  .result {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .result-name {
+    min-width: 0;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .field--preset {
+    flex: 1 1 100%;
+  }
 }
 </style>

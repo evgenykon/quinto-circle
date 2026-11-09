@@ -5,7 +5,10 @@
         <h1 class="title">quinto-circle</h1>
         <p class="subtitle">Квинтовый круг — интерактивный инструмент для создания музыки</p>
       </div>
-      <NuxtLink to="/chords" class="nav-link">Определить аккорд →</NuxtLink>
+      <nav class="nav">
+        <NuxtLink to="/chords" class="nav-link">Определить аккорд →</NuxtLink>
+        <NuxtLink to="/tree" class="nav-link">Дерево аккордов →</NuxtLink>
+      </nav>
     </header>
 
     <div class="layout">
@@ -38,6 +41,12 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 32px;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .nav-link {

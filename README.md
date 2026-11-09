@@ -17,6 +17,10 @@ An interactive circle of fifths — a tool for exploring harmony, building chord
 - **Chord detector:** vertical guitar fretboard (5 frets with scroll along the neck), clickable strings,
   open strings and tuning presets — the chord name is recognized automatically
   ([`/chords`](https://evgenykon.github.io/quinto-circle/chords))
+- **Chord tree:** pick a central chord and see every allowed progression branching out from it in all
+  directions; branches end on a chord that can return to the centre. Filter by mode and style
+  (functional, pop, rock, blues, jazz) and depth; chords keep one colour (major warm, minor cold)
+  ([`/tree`](https://evgenykon.github.io/quinto-circle/tree))
 
 ## Getting started
 

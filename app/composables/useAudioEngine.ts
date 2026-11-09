@@ -247,5 +247,20 @@ export function useAudioEngine() {
     }
   }
 
-  return { scheduleChord, scheduleMetronome, stop, getCtx }
+  const playNotes = (instrument: Instrument, midiNotes: number[], duration = 1.4) => {
+    const audioCtx = getCtx()
+    const inst = createInstrument(instrument, audioCtx)
+    const startTime = audioCtx.currentTime + 0.02
+
+    midiNotes.forEach((midi) => {
+      const node = inst.noteOn(midiToFreq(midi), startTime)
+      scheduledNodes.push(node)
+      const id = window.setTimeout(() => {
+        node.stop(startTime + duration)
+      }, (startTime - audioCtx.currentTime + duration) * 1000 + 50)
+      timeoutIds.push(id)
+    })
+  }
+
+  return { scheduleChord, scheduleMetronome, playNotes, stop, getCtx }
 }

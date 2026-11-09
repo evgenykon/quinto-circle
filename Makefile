@@ -8,4 +8,7 @@ down:
 	docker compose -f docker-compose.dev.yml down
 
 run:
-	docker compose -f docker-compose.dev.yml run --rm quinto-circle $(cmd)
+	docker compose -f docker-compose.dev.yml run --rm app $(cmd)
+
+test:
+	docker compose -f docker-compose.dev.yml run --rm app node scripts/check-chords.ts

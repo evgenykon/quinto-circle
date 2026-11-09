@@ -50,6 +50,14 @@ const selectedPath = computed(() => {
 
 const styleInfo = computed(() => STYLES.find((item) => item.id === style.value))
 
+const chordWord = (count: number) => {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (mod10 === 1 && mod100 !== 11) return 'аккорд'
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'аккорда'
+  return 'аккордов'
+}
+
 const select = (node: TreeNode) => {
   selectedId.value = node.id === selectedId.value ? null : node.id
   stop()
@@ -127,18 +135,16 @@ onBeforeUnmount(() => {
       <label class="field">
         <span class="field-label">Глубина</span>
         <select v-model.number="depth" class="select select--note">
-          <option :value="2">2 аккорда</option>
-          <option :value="3">3 аккорда</option>
-          <option :value="4">4 аккорда</option>
+          <option v-for="value in 7" :key="value" :value="value + 1">
+            {{ value + 1 }} {{ chordWord(value + 1) }}
+          </option>
         </select>
       </label>
 
       <button type="button" class="button" @click="reset">Сброс</button>
     </section>
 
-    <main class="tree-area">
-      <ChordTree :root="tree.root" :selected-id="selectedId" @select="select" />
-    </main>
+    <ChordTree class="tree-area" :root="tree.root" :selected-id="selectedId" @select="select" />
 
     <footer class="footer">
       <div class="path">
@@ -175,7 +181,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .page {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 620px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -268,9 +276,8 @@ onBeforeUnmount(() => {
 }
 
 .tree-area {
-  position: relative;
   flex: 1;
-  min-height: 380px;
+  min-height: 0;
 }
 
 .footer {

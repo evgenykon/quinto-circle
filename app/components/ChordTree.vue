@@ -61,6 +61,42 @@ const maxLevel = computed(() => placed.value.reduce((max, item) => Math.max(max,
 const size = computed(() => 2 * (maxLevel.value * RING + PAD))
 const half = computed(() => size.value / 2)
 
+/* Глубокие деревья не влезают в экран целиком: держим масштаб, при котором
+   подписи читаемы, и даём области прокрутку. */
+const viewport = ref<HTMLElement | null>(null)
+const areaW = ref(0)
+const areaH = ref(0)
+
+let observer: ResizeObserver | null = null
+
+const centerScroll = () => {
+  const el = viewport.value
+  if (!el) return
+  el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2
+  el.scrollTop = (el.scrollHeight - el.clientHeight) / 2
+}
+
+onMounted(() => {
+  const el = viewport.value
+  if (!el) return
+  observer = new ResizeObserver(() => {
+    areaW.value = el.clientWidth
+    areaH.value = el.clientHeight
+  })
+  observer.observe(el)
+  areaW.value = el.clientWidth
+  areaH.value = el.clientHeight
+  nextTick(centerScroll)
+})
+
+onBeforeUnmount(() => observer?.disconnect())
+
+watch([size, maxLevel], () => nextTick(centerScroll))
+
+const displaySize = computed(() =>
+  Math.max(Math.min(areaW.value || 800, areaH.value || 600), size.value * 0.6),
+)
+
 const nodeRadius = (level: number) => (level === 0 ? ROOT_R : NODE_R)
 
 /** Листья, из которых есть возврат на центральный аккорд. */
@@ -104,11 +140,15 @@ const returnPath = (item: PlacedNode) => {
 </script>
 
 <template>
-  <svg
-    :viewBox="`${-half} ${-half} ${size} ${size}`"
-    class="tree-svg"
-    preserveAspectRatio="xMidYMid meet"
-  >
+  <div ref="viewport" class="tree-scroll">
+    <div class="tree-canvas" :style="{ width: `${displaySize}px`, height: `${displaySize}px` }">
+      <svg
+        width="100%"
+        height="100%"
+        :viewBox="`${-half} ${-half} ${size} ${size}`"
+        class="tree-svg"
+        preserveAspectRatio="xMidYMid meet"
+      >
     <!-- связи -->
     <g class="edges">
       <path
@@ -175,16 +215,25 @@ const returnPath = (item: PlacedNode) => {
         </text>
       </g>
     </g>
-  </svg>
+      </svg>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.tree-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tree-canvas {
+  margin: 0 auto;
+}
+
 .tree-svg {
-  /* Абсолютное заполнение: родитель (.tree-area) должен быть position: relative. */
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  display: block;
   user-select: none;
 }
 

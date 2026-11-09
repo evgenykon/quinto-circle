@@ -20,13 +20,13 @@ for (const style of STYLES) {
   const nodes = flattenTree(root)
   check(`${style.id}: центр = C`, root.chord.name === 'C', root.chord.name)
   check(`${style.id}: есть ветвление`, totalNodes > 3, `${totalNodes} узлов`)
-  check(`${style.id}: глубина ≤ 3`, maxLevel <= 3, `maxLevel=${maxLevel}`)
+  check(`${style.id}: глубина ≤ 2 шага`, maxLevel <= 2, `maxLevel=${maxLevel}`)
   check(`${style.id}: без повторов ступени в пути`,
     nodes.every((n) => new Set(n.path.map((c) => c.degree)).size === n.path.length))
-  check(`${style.id}: листья умеют вернуться или на пределе глубины`,
-    nodes.every((n) => n.children.length > 0 || n.canReturn || n.level === 3))
-  check(`${style.id}: у каждого листа-возврата canReturn`,
-    nodes.filter((n) => n.children.length === 0 && n.level < 3).every((n) => n.canReturn))
+  check(`${style.id}: каждый лист умеет вернуться на центр`,
+    nodes.filter((n) => n.children.length === 0).every((n) => n.canReturn))
+  check(`${style.id}: длина ветки не больше глубины`,
+    nodes.every((n) => n.path.length <= 3))
   check(`${style.id}: id уникальны`, new Set(nodes.map((n) => n.id)).size === nodes.length)
 }
 

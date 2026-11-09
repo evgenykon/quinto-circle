@@ -218,7 +218,7 @@ export interface ChordTreeResult {
  */
 export function buildChordTree(options: BuildOptions): ChordTreeResult {
   const { tonicPc, mode, style, maxDepth } = options
-  const maxNodes = options.maxNodes ?? 90
+  const maxNodes = options.maxNodes ?? 260
   const rules = STYLES.find((item) => item.id === style)?.rules ?? STYLES[0]!.rules
 
   let counter = 0
@@ -232,29 +232,44 @@ export function buildChordTree(options: BuildOptions): ChordTreeResult {
     return node
   }
 
-  const expand = (chord: TreeChord, level: number, path: TreeChord[]): TreeNode => {
+  const expand = (chord: TreeChord, level: number, path: TreeChord[]): TreeNode | null => {
+    if (counter > maxNodes) return null
+    counter++
+
     const node = makeNode(chord, level, [...path, chord])
     const allowed = rules[chord.degree] ?? []
+    // Возврат на центральный аккорд доступен из этого узла — это возможная концовка.
     node.canReturn = level > 0 && allowed.includes(0)
 
-    if (level >= maxDepth) return node
-    if (node.canReturn && level >= 2) return node
-    if (counter >= maxNodes) return node
+    // maxDepth — длина последовательности в аккордах (уровень 0 — центральный).
+    if (level + 1 >= maxDepth) {
+      // Ветка обязана закончиться аккордом, из которого есть возврат.
+      return node.canReturn ? node : null
+    }
 
     const nextDegrees = allowed.filter(
       (degree) => degree !== 0 && !path.some((item) => item.degree === degree),
     )
 
     for (const degree of nextDegrees) {
-      counter++
-      node.children.push(expand(degreeChord(tonicPc, mode, degree), level + 1, [...path, chord]))
+      const child = expand(degreeChord(tonicPc, mode, degree), level + 1, [...path, chord])
+      if (child) node.children.push(child)
     }
 
+    if (!node.children.length && !node.canReturn) return null
     return node
   }
 
   const root = expand(degreeChord(tonicPc, mode, 0), 0, [])
-  return { root, totalNodes: counter + 1, maxLevel }
+  if (!root) {
+    const fallback = makeNode(degreeChord(tonicPc, mode, 0), 0, [])
+    return { root: fallback, totalNodes: 1, maxLevel: 0 }
+  }
+  return { root, totalNodes: flattenTreeCount(root), maxLevel }
+}
+
+function flattenTreeCount(node: TreeNode): number {
+  return 1 + node.children.reduce((sum, child) => sum + flattenTreeCount(child), 0)
 }
 
 export function countLeaves(node: TreeNode): number {

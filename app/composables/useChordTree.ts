@@ -49,11 +49,22 @@ export const MINOR_MODES: TreeMode[] = ['natural_minor', 'harmonic_minor', 'melo
 
 export type StyleId = 'functional' | 'pop' | 'rock' | 'blues' | 'jazz'
 
+export interface ChordDef {
+  offset: number
+  quality: ChordQuality
+  roman: string
+}
+
 export interface StyleRules {
   id: StyleId
   label: string
   description: string
-  /** Разрешённые переходы: ступень → список следующих ступеней (0 = I). */
+  /**
+   * Дополнительные (заимствованные) аккорды стиля: индексы 7, 8, … в правилах.
+   * Ступени 0–6 — диатоника лада.
+   */
+  palette?: ChordDef[]
+  /** Разрешённые переходы: индекс аккорда в палитре → список следующих индексов (0 = I). */
   rules: number[][]
 }
 
@@ -89,29 +100,37 @@ export const STYLES: StyleRules[] = [
   {
     id: 'rock',
     label: 'Рок',
-    description: 'Короткие кварто-квинтовые ходы, сильные тонико-доминантовые связи.',
+    description: 'Кварто-квинтовые ходы, vi и заимствованные bVII и bIII — типичный рок-оборот.',
+    palette: [
+      { offset: 10, quality: 'maj', roman: 'bVII' },
+      { offset: 3, quality: 'maj', roman: 'bIII' },
+    ],
     rules: [
-      [3, 4, 5], // I  → IV, V, VI
-      [4], //       II → V
-      [3], //       III → IV
-      [0, 4], //    IV → I, V
-      [0, 3], //    V  → I, IV
-      [3, 0], //    VI → IV, I
-      [0], //       VII → I
+      [3, 4, 5, 7, 8], // I    → IV, V, VI, bVII, bIII
+      [4, 3], //          II   → V, IV
+      [3, 5], //          III  → IV, VI
+      [0, 4, 5, 7], //    IV   → I, V, VI, bVII
+      [0, 3, 5], //       V    → I, IV, VI
+      [3, 4, 7, 0], //    VI   → IV, V, bVII, I
+      [0, 2], //          VII  → I, III
+      [0, 3, 8], //       bVII → I, IV, bIII
+      [3, 7, 0], //       bIII → IV, bVII, I
     ],
   },
   {
     id: 'blues',
     label: 'Блюз',
-    description: 'Только I–IV–V: блюзовый квадрат без промежуточных функций.',
+    description: 'Блюзовый квадрат I–IV–V с быстрой сменой, ii–V и оборотом через bVII.',
+    palette: [{ offset: 10, quality: 'maj', roman: 'bVII' }],
     rules: [
-      [3, 4], // I  → IV, V
-      [4], //    II → V
-      [5], //    III → VI
-      [0, 4], // IV → I, V
-      [0, 3], // V  → I, IV
-      [1, 4], // VI → II, V
-      [0], //    VII → I
+      [3, 4, 1, 5, 7], // I    → IV, V, II, VI, bVII
+      [4, 3], //       II   → V, IV
+      [5, 3], //       III  → VI, IV
+      [0, 4, 1, 7], // IV   → I, V, II, bVII
+      [0, 3, 5], //    V    → I, IV, VI
+      [1, 4, 3, 7], // VI   → II, V, IV, bVII
+      [2, 4], //       VII  → III, V
+      [0, 3, 4], //    bVII → I, IV, V (оборот)
     ],
   },
   {
@@ -216,10 +235,28 @@ export interface ChordTreeResult {
  * Ветка обрывается, когда аккорд уже может вернуться на центральный
  * (`canReturn`, начиная со второго уровня) либо достигнута максимальная глубина.
  */
+export function borrowedChord(tonicPc: number, def: ChordDef): TreeChord {
+  const rootPc = normalize(tonicPc + def.offset)
+  return {
+    key: `${rootPc}-${def.quality}`,
+    rootPc,
+    quality: def.quality,
+    degree: -1,
+    roman: def.roman,
+    name: `${TREE_NOTE_NAMES[rootPc]}${QUALITY_SUFFIX[def.quality]}`,
+    color: chordColor(rootPc, def.quality),
+  }
+}
+
 export function buildChordTree(options: BuildOptions): ChordTreeResult {
   const { tonicPc, mode, style, maxDepth } = options
-  const maxNodes = options.maxNodes ?? 260
-  const rules = STYLES.find((item) => item.id === style)?.rules ?? STYLES[0]!.rules
+  const maxNodes = options.maxNodes ?? 320
+  const styleRules = STYLES.find((item) => item.id === style) ?? STYLES[0]!
+  const rules = styleRules.rules
+
+  // Палитра стиля: 7 диатонических ступеней + заимствованные аккорды (bVII, bIII, …).
+  const palette: TreeChord[] = Array.from({ length: 7 }, (_, degree) => degreeChord(tonicPc, mode, degree))
+  for (const def of styleRules.palette ?? []) palette.push(borrowedChord(tonicPc, def))
 
   let counter = 0
   let nodeSeq = 0
@@ -232,12 +269,13 @@ export function buildChordTree(options: BuildOptions): ChordTreeResult {
     return node
   }
 
-  const expand = (chord: TreeChord, level: number, path: TreeChord[]): TreeNode | null => {
+  const expand = (paletteIndex: number, level: number, path: TreeChord[]): TreeNode | null => {
     if (counter > maxNodes) return null
     counter++
 
+    const chord = palette[paletteIndex]!
     const node = makeNode(chord, level, [...path, chord])
-    const allowed = rules[chord.degree] ?? []
+    const allowed = rules[paletteIndex] ?? []
     // Возврат на центральный аккорд доступен из этого узла — это возможная концовка.
     node.canReturn = level > 0 && allowed.includes(0)
 
@@ -247,12 +285,13 @@ export function buildChordTree(options: BuildOptions): ChordTreeResult {
       return node.canReturn ? node : null
     }
 
-    const nextDegrees = allowed.filter(
-      (degree) => degree !== 0 && !path.some((item) => item.degree === degree),
+    const usedKeys = new Set(path.map((item) => item.key))
+    const nextIndexes = allowed.filter(
+      (index) => index !== 0 && palette[index] && !usedKeys.has(palette[index]!.key),
     )
 
-    for (const degree of nextDegrees) {
-      const child = expand(degreeChord(tonicPc, mode, degree), level + 1, [...path, chord])
+    for (const index of nextIndexes) {
+      const child = expand(index, level + 1, [...path, chord])
       if (child) node.children.push(child)
     }
 
@@ -260,7 +299,7 @@ export function buildChordTree(options: BuildOptions): ChordTreeResult {
     return node
   }
 
-  const root = expand(degreeChord(tonicPc, mode, 0), 0, [])
+  const root = expand(0, 0, [])
   if (!root) {
     const fallback = makeNode(degreeChord(tonicPc, mode, 0), 0, [])
     return { root: fallback, totalNodes: 1, maxLevel: 0 }

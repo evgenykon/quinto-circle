@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const TOTAL_FRETS = 15
-const VISIBLE_FRETS = 4
+const VISIBLE_FRETS = 5
 
 const startFret = ref(1)
 const maxStartFret = TOTAL_FRETS - VISIBLE_FRETS + 1

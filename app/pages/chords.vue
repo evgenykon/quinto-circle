@@ -288,7 +288,7 @@ const playSingle = (midi: number) => {
 .neck-area {
   position: relative;
   flex: 1;
-  min-height: 360px;
+  min-height: 400px;
 }
 
 .tuning-bar {

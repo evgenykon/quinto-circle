@@ -14,6 +14,9 @@ An interactive circle of fifths — a tool for exploring harmony, building chord
 - **Theory panel:** reference for key signatures, scale degrees, and chromatic notes
 - **Player:** 50 built-in chord progressions, chords and arpeggios, 3 instruments (piano, guitar, organ), adjustable tempo, metronome
 - **Visualization:** chord movement graph inside the circle, current chord highlighting
+- **Chord detector:** vertical guitar fretboard (4 frets with scroll along the neck), clickable strings,
+  open strings and tuning presets — the chord name is recognized automatically
+  ([`/chords`](https://evgenykon.github.io/quinto-circle/chords))
 
 ## Getting started
 
@@ -21,6 +24,7 @@ An interactive circle of fifths — a tool for exploring harmony, building chord
 make build    # build Docker image
 make dev      # start dev server at http://localhost:3000
 make down     # stop the server
+make test     # run chord-detection checks inside the container
 ```
 
 ## Stack

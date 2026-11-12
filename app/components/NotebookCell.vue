@@ -594,4 +594,47 @@ onBeforeUnmount(() => {
   color: var(--accent-foreground);
   cursor: pointer;
 }
+/* На телефоне поповер у крайней ячейки не помещается в лист —
+   показываем его как нижнюю панель на всю ширину экрана. */
+@media (max-width: 760px) {
+  .popover,
+  .popover--repeat,
+  .popover--part {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    top: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: 60vh;
+    overflow: auto;
+    z-index: 80;
+    padding: 10px;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.28);
+  }
+
+  .popover-item {
+    padding: 10px 10px;
+    font-size: 14px;
+  }
+
+  .popover-title {
+    font-size: 13px;
+  }
+
+  .repeat-field {
+    font-size: 13px;
+  }
+
+  .add-input {
+    font-size: 15px;
+    padding: 8px 9px;
+  }
+
+  .add-submit {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+}
 </style>

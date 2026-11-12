@@ -9,13 +9,17 @@ const emit = defineEmits<{
 }>()
 
 const draft = ref<TabNote[]>(props.notes.map((note) => ({ ...note })))
-const entering = ref<number | null>(null)
-const fretInput = ref('')
+
+/** Отмеченные струны: ключ — номер струны, значение — введённый лад. */
+const armed = ref<Record<number, string>>({})
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e']
 const label = (string: number) => STRING_LABELS[string]!
 
 const rows = computed(() => [5, 4, 3, 2, 1, 0].map((string) => ({ string, label: STRING_LABELS[string]! })))
+
+const armedStrings = computed(() => Object.keys(armed.value).map(Number))
+const armedCount = computed(() => armedStrings.value.length)
 
 const columns = computed(() => Math.max(draft.value.length, 1))
 
@@ -30,23 +34,37 @@ const placed = computed(() =>
 )
 
 const notesFor = (string: number) => placed.value.filter((item) => item.string === string)
+const isArmed = (string: number) => armed.value[string] !== undefined
 
-const startEntry = (string: number) => {
-  entering.value = string
-  fretInput.value = ''
+const toggleString = (string: number) => {
+  const next = { ...armed.value }
+  if (next[string] !== undefined) delete next[string]
+  else next[string] = ''
+  armed.value = next
 }
 
-const confirmEntry = () => {
-  if (entering.value === null) return
-  const fret = Number.parseInt(fretInput.value, 10)
-  if (Number.isNaN(fret) || fret < 0 || fret > 24) return
-  if (draft.value.length >= TABS_PER_CELL) {
-    entering.value = null
-    return
+const setFret = (string: number, value: string) => {
+  armed.value = { ...armed.value, [string]: value }
+}
+
+const canAdd = computed(
+  () =>
+    armedStrings.value.filter((string) => {
+      const fret = Number.parseInt(armed.value[string] ?? '', 10)
+      return !Number.isNaN(fret) && fret >= 0 && fret <= 24
+    }).length > 0,
+)
+
+const addArmed = () => {
+  const next = [...draft.value]
+  for (const string of armedStrings.value) {
+    if (next.length >= TABS_PER_CELL) break
+    const fret = Number.parseInt(armed.value[string] ?? '', 10)
+    if (Number.isNaN(fret) || fret < 0 || fret > 24) continue
+    next.push({ string, fret })
   }
-  draft.value.push({ string: entering.value, fret })
-  entering.value = null
-  fretInput.value = ''
+  draft.value = next
+  armed.value = {}
 }
 
 const removeAt = (index: number) => {
@@ -55,6 +73,7 @@ const removeAt = (index: number) => {
 
 const clear = () => {
   draft.value = []
+  armed.value = {}
 }
 
 const apply = () => {
@@ -65,49 +84,53 @@ const apply = () => {
 <template>
   <div class="tab-editor">
     <p class="hint">
-      Кликни по струне и укажи номер лада — нота добавится в табы. До {{ TABS_PER_CELL }} нот,
-      сейчас: {{ draft.length }}.
+      Отметь струны точками (можно несколько), кликни по точке и укажи лад, затем «Добавить».
+      В табах: {{ draft.length }} из {{ TABS_PER_CELL }}.
     </p>
 
     <div class="staff">
       <div v-for="row in rows" :key="`row-${row.string}`" class="staff-row">
         <span class="string-label">{{ row.label }}</span>
-        <button
-          type="button"
-          class="string-hit"
-          :class="{ 'string-hit--active': entering === row.string }"
-          :aria-label="`Струна ${row.label}`"
-          @click="startEntry(row.string)"
-        >
+
+        <div class="track" @click="toggleString(row.string)">
           <span class="line" />
-        </button>
-        <span
-          v-for="note in notesFor(row.string)"
-          :key="note.key"
-          class="staff-note"
-          :style="{ left: `calc(${note.left}% + 18px)` }"
-        >
-          {{ note.fret }}
-        </span>
+          <span
+            v-if="isArmed(row.string)"
+            class="dot"
+            :class="{ 'dot--empty': armed[row.string] === '' }"
+            @click.stop
+          >
+            <input
+              :value="armed[row.string]"
+              class="dot-input"
+              type="number"
+              min="0"
+              max="24"
+              inputmode="numeric"
+              placeholder="–"
+              @input="setFret(row.string, ($event.target as HTMLInputElement).value)"
+              @keydown.enter.prevent="addArmed"
+            >
+          </span>
+          <span
+            v-for="note in notesFor(row.string)"
+            :key="note.key"
+            class="staff-note"
+            :style="{ left: `${note.left}%` }"
+          >
+            {{ note.fret }}
+          </span>
+        </div>
       </div>
     </div>
 
-    <form v-if="entering !== null" class="entry" @submit.prevent="confirmEntry">
-      <span class="entry-label">Струна {{ label(entering) }} — лад:</span>
-      <input
-        v-model="fretInput"
-        class="fret-input"
-        type="number"
-        min="0"
-        max="24"
-        inputmode="numeric"
-        placeholder="0"
-        autofocus
-        @keydown.enter.prevent="confirmEntry"
-      >
-      <button type="submit" class="button button--primary">Добавить</button>
-      <button type="button" class="button" @click="entering = null">Отмена</button>
-    </form>
+    <div class="add-row">
+      <button type="button" class="button button--primary" :disabled="!canAdd" @click="addArmed">
+        Добавить{{ armedCount ? ` (${armedCount})` : '' }}
+      </button>
+      <button v-if="armedCount" type="button" class="button" @click="armed = {}">Снять точки</button>
+      <span v-if="armedCount" class="add-hint">Отмечено струн: {{ armedCount }}</span>
+    </div>
 
     <div v-if="draft.length" class="notes">
       <span v-for="(note, index) in draft" :key="`${note.string}-${note.fret}-${index}`" class="chip">
@@ -140,16 +163,15 @@ const apply = () => {
 .staff {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px 0;
+  gap: 4px;
+  padding: 4px 0;
 }
 
 .staff-row {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 26px;
+  height: 30px;
 }
 
 .string-label {
@@ -160,29 +182,69 @@ const apply = () => {
   flex: 0 0 auto;
 }
 
-.string-hit {
+.track {
+  position: relative;
   flex: 1;
-  height: 22px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+  height: 26px;
   display: flex;
   align-items: center;
+  cursor: pointer;
 }
 
 .line {
-  display: block;
   width: 100%;
   height: 1.5px;
   background: var(--muted-foreground);
   border-radius: 1px;
 }
 
-.string-hit:hover .line,
-.string-hit--active .line {
+.track:hover .line {
   background: var(--accent);
-  height: 3px;
+}
+
+.dot {
+  position: absolute;
+  left: 14%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  cursor: text;
+}
+
+.dot--empty {
+  background: var(--background);
+  border: 1.5px dashed var(--accent);
+}
+
+.dot-input {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.dot-input::-webkit-outer-spin-button,
+.dot-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.dot--empty .dot-input {
+  color: var(--foreground);
 }
 
 .staff-note {
@@ -197,30 +259,16 @@ const apply = () => {
   pointer-events: none;
 }
 
-.entry {
+.add-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--muted);
 }
 
-.entry-label {
+.add-hint {
   font-size: 12px;
   color: var(--muted-foreground);
-}
-
-.fret-input {
-  width: 72px;
-  padding: 6px 8px;
-  font-size: 13px;
-  color: var(--foreground);
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 7px;
 }
 
 .notes {
@@ -271,8 +319,13 @@ const apply = () => {
   cursor: pointer;
 }
 
-.button:hover {
+.button:hover:not(:disabled) {
   background: var(--muted);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .button--primary {

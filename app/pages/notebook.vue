@@ -345,7 +345,7 @@ const dropDiagram = () => {
   font-size: clamp(9px, 1.55vw, 14.4px);
   aspect-ratio: 210 / 297;
   background: var(--background);
-  border: 2px solid #000;
+  border: var(--nb-sheet-border, 2px) solid var(--nb-border-color, #000);
   border-radius: 2px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
@@ -456,13 +456,17 @@ const dropDiagram = () => {
     width: 100% !important;
     height: 279mm !important;
     aspect-ratio: auto !important;
-    border: 2px solid #000 !important;
+    border-width: var(--nb-sheet-border, 1px) !important;
+    border-style: solid !important;
+    border-color: var(--nb-border-color, #000) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     break-after: page;
     page-break-after: always;
     font-size: 3.6mm !important;
     color: #000;
+    --nb-cell-border: 1px;
+    --nb-sheet-border: 1px;
   }
 
   .sheet:last-of-type {

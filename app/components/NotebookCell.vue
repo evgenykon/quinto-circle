@@ -231,14 +231,11 @@ const closeAll = () => {
   display: flex;
   min-height: 0;
   min-width: 0;
-  border-right: 2px solid #000;
-  border-bottom: 2px solid #000;
+  border-right: var(--nb-cell-border, 2px) solid var(--nb-border-color, #000);
+  border-bottom: var(--nb-cell-border, 2px) solid var(--nb-border-color, #000);
   background: var(--background);
 }
 
-.cell--first {
-  border-right-width: 2px;
-}
 
 .part-strip {
   flex: 0 0 25px;

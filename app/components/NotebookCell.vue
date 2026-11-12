@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import type { CellData } from '~/composables/useNotebook'
+import type { CellData, CellRepeat } from '~/composables/useNotebook'
 import { CHORDS_PER_CELL, PART_PRESETS } from '~/composables/useNotebook'
 
 const props = defineProps<{
   cell: CellData
   part: string
   firstColumn?: boolean
-  /** Номер ячейки на листе (1…32). */
+  /** Показанный номер ячейки (с учётом повторов). */
   index?: number
+  /** Номера всех ячеек листа (по индексу 0…31) — для поля «с ячейки». */
+  numbers?: number[]
+  repeat?: CellRepeat | null
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +18,7 @@ const emit = defineEmits<{
   'update:part': [part: string]
   'open-diagram': []
   'open-tab': []
+  'update:repeat': [repeat: CellRepeat | null]
 }>()
 
 const menu = ref(false)
@@ -54,6 +58,36 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => fitObserver?.disconnect())
+
+const repeatMenu = ref(false)
+const repeatFrom = ref('')
+const repeatTimes = ref('')
+
+const repeatLabel = computed(() =>
+  props.repeat ? `↺${props.numbers?.[props.repeat.from] ?? props.repeat.from + 1}×${props.repeat.times}` : '',
+)
+
+const openRepeatMenu = () => {
+  repeatMenu.value = true
+  repeatFrom.value = props.repeat
+    ? String(props.numbers?.[props.repeat.from] ?? props.repeat.from + 1)
+    : String(props.index ?? 1)
+  repeatTimes.value = props.repeat ? String(props.repeat.times) : '2'
+}
+
+const saveRepeat = () => {
+  const shownFrom = Number.parseInt(repeatFrom.value, 10)
+  const times = Number.parseInt(repeatTimes.value, 10)
+  const fromIndex = props.numbers?.indexOf(shownFrom) ?? -1
+  if (fromIndex < 0 || Number.isNaN(times) || times < 1) return
+  emit('update:repeat', { from: fromIndex, times })
+  repeatMenu.value = false
+}
+
+const clearRepeat = () => {
+  emit('update:repeat', null)
+  repeatMenu.value = false
+}
 
 const editingNote = ref(false)
 const noteDraft = ref('')
@@ -122,13 +156,22 @@ const closeAll = () => {
   menu.value = false
   adding.value = false
   partMenu.value = false
+  repeatMenu.value = false
 }
 
 </script>
 
 <template>
-  <div class="cell" :class="{ 'cell--first': firstColumn }" @click="closeAll">
-    <span v-if="index" class="cell-number">{{ index }}</span>
+  <div class="cell" :class="{ 'cell--first': firstColumn, 'cell--repeat': repeat }" @click="closeAll">
+    <button
+      v-if="index"
+      type="button"
+      class="cell-number"
+      :class="{ 'cell-number--repeat': repeat }"
+      @click.stop="openRepeatMenu"
+    >
+      {{ index }}<span v-if="repeatLabel" class="cell-repeat">{{ repeatLabel }}</span>
+    </button>
     <button
       v-if="firstColumn"
       type="button"
@@ -204,6 +247,24 @@ const closeAll = () => {
       </form>
     </div>
 
+    <div v-if="repeatMenu" class="popover popover--repeat" @click.stop>
+      <span class="popover-title">Повтор блока</span>
+      <form class="add-form" @submit.prevent="saveRepeat">
+        <label class="repeat-field">
+          <span>с ячейки</span>
+          <input v-model="repeatFrom" class="add-input add-input--num" type="number" min="1" max="32">
+        </label>
+        <label class="repeat-field">
+          <span>раз</span>
+          <input v-model="repeatTimes" class="add-input add-input--num" type="number" min="1" max="8">
+        </label>
+        <button type="submit" class="add-submit">OK</button>
+      </form>
+      <button v-if="repeat" type="button" class="popover-item popover-item--danger" @click="clearRepeat">
+        Убрать повтор
+      </button>
+    </div>
+
     <div v-if="partMenu" class="popover popover--part" @click.stop>
       <form class="add-form" @submit.prevent="commitPart">
         <input
@@ -243,14 +304,67 @@ const closeAll = () => {
 .cell-number {
   position: absolute;
   top: 1px;
-  right: 4px;
+  right: 3px;
   z-index: 2;
-  font-size: 0.5em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 3px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  font-size: 0.56em;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
+  white-space: nowrap;
   color: var(--muted-foreground);
-  pointer-events: none;
+  cursor: pointer;
   user-select: none;
+}
+
+.cell-number:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.cell-number--repeat {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.cell-repeat {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.cell--repeat {
+  border-right: 4px double #000;
+  border-left: 1px dashed #000;
+}
+
+.popover--repeat {
+  right: 4px;
+  left: auto;
+  min-width: 210px;
+}
+
+.popover-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  padding: 2px 2px 4px;
+}
+
+.repeat-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.add-input--num {
+  width: 48px;
 }
 
 .part-strip {

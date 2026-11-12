@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import {
   COLUMNS,
+  computeNumbers,
   ROWS_PER_PAGE,
   createNotebook,
   normalizeNotebook,
   type CellData,
+  type CellRepeat,
   type ChordDiagramData,
   type NotebookFile,
+  type PageData,
   type TabNote,
 } from '~/composables/useNotebook'
 
@@ -19,6 +22,19 @@ const storageKey = 'quinto-notebook-v1'
 
 const pages = computed(() => notebook.value.pages)
 const currentPage = computed(() => pages.value[activePage.value] ?? pages.value[0]!)
+
+const pageNumbers = computed(() => {
+  const map = new Map<string, number[]>()
+  notebook.value.pages.forEach((page) => map.set(page.id, computeNumbers(page)))
+  return map
+})
+
+const numbersFor = (page: PageData) => pageNumbers.value.get(page.id) ?? []
+
+const updateRepeat = (pageIndex: number, rowIndex: number, cellIndex: number, repeat: CellRepeat | null) => {
+  const cell = notebook.value.pages[pageIndex]?.rows[rowIndex]?.cells[cellIndex]
+  if (cell) cell.repeat = repeat
+}
 
 const diagramEditor = ref<{ page: number; row: number; cell: number; value: ChordDiagramData | null } | null>(null)
 const tabEditor = ref<{ page: number; row: number; cell: number; value: TabNote[] } | null>(null)
@@ -195,13 +211,16 @@ const dropDiagram = () => {
               :key="`${page.id}-${rowIndex}-${cellIndex}`"
               :cell="cell"
               :part="row.part"
-              :index="rowIndex * COLUMNS + cellIndex + 1"
+              :index="numbersFor(page)[rowIndex * COLUMNS + cellIndex]"
+              :numbers="numbersFor(page)"
+              :repeat="cell.repeat"
               :first-column="cellIndex === 0"
               class="cell-slot"
               @update:cell="updateCell(pageIndex, rowIndex, cellIndex, $event)"
               @update:part="updatePart(pageIndex, rowIndex, $event)"
               @open-diagram="openDiagram(pageIndex, rowIndex, cellIndex)"
               @open-tab="openTab(pageIndex, rowIndex, cellIndex)"
+              @update:repeat="updateRepeat(pageIndex, rowIndex, cellIndex, $event)"
             />
           </div>
         </div>

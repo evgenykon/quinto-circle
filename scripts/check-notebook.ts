@@ -3,6 +3,7 @@ import {
   COLUMNS,
   ROWS_PER_PAGE,
   TABS_PER_CELL,
+  computeNumbers,
   createNotebook,
   emptyCell,
   emptyPage,
@@ -54,6 +55,26 @@ const badTabs = normalizeNotebook({
   pages: [{ rows: [{ cells: [{ tab: [{ string: 1, fret: 2 }, { string: 'x' }, null, { fret: 3 }] }] }] }],
 })
 check('невалидные ноты табов отброшены', badTabs.pages[0]!.rows[0]!.cells[0]!.tab.length === 1)
+
+// нумерация с повторами
+const numbered = emptyPage()
+for (let i = 0; i < 2; i++) numbered.rows[i]!.cells.forEach((c) => { c.chords = [] })
+numbered.rows[1]!.cells[3]!.repeat = { from: 4, times: 2 } // ячейка 8 → повтор с 5, 2 раза
+const nums = computeNumbers(numbered)
+check('номера до повтора: 1…8', nums.slice(0, 8).join(',') === '1,2,3,4,5,6,7,8', nums.slice(0, 8).join(','))
+check('после повтора нумерация сдвинута на 8', nums[8] === 17, String(nums[8]))
+check('сдвиг сохраняется до конца листа', nums[31] === 40, String(nums[31]))
+const noRepeat = computeNumbers(emptyPage())
+check('без повторов номера 1…32', noRepeat.join(',') === Array.from({ length: 32 }, (_, i) => i + 1).join(','))
+
+// повтор нормализуется из JSON
+const withRepeat = normalizeNotebook({
+  pages: [{ rows: [{ cells: [{}, {}, {}, { repeat: { from: 0, times: 3 } }] }] }],
+})
+check('повтор сохраняется при загрузке',
+  withRepeat.pages[0]!.rows[0]!.cells[3]!.repeat?.times === 3)
+const badRepeat = normalizeNotebook({ pages: [{ rows: [{ cells: [{ repeat: { from: 'x', times: 0 } }] }] }] })
+check('невалидный повтор отбрасывается', badRepeat.pages[0]!.rows[0]!.cells[0]!.repeat === null)
 
 // одновременные ноты (одна колонка) и старый формат без колонок
 const simultaneous = normalizeNotebook({

@@ -179,6 +179,11 @@ const dropDiagram = () => {
         class="sheet"
         :class="{ 'sheet--hidden': pageIndex !== activePage }"
       >
+        <header class="sheet-head">
+          <span class="sheet-title">{{ notebook.title }}</span>
+          <span class="sheet-page">{{ pageIndex + 1 }} / {{ pages.length }}</span>
+        </header>
+
         <div class="grid">
           <div
             v-for="(row, rowIndex) in page.rows"
@@ -342,6 +347,8 @@ const dropDiagram = () => {
 .sheet {
   /* Размер шрифта масштабируется от ширины листа (без container-type:
      в текущем Chromium layout-контейнер ломает отрисовку SVG внутри). */
+  display: flex;
+  flex-direction: column;
   width: min(100%, 900px);
   font-size: clamp(9px, 1.55vw, 14.4px);
   aspect-ratio: 210 / 297;
@@ -356,10 +363,36 @@ const dropDiagram = () => {
   display: none;
 }
 
+.sheet-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.15em 0.35em 0.2em;
+  border-bottom: 1.5px solid #000;
+  flex: 0 0 auto;
+}
+
+.sheet-title {
+  font-size: 0.95em;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet-page {
+  font-size: 0.6em;
+  color: var(--muted-foreground);
+  flex: 0 0 auto;
+}
+
 .grid {
   display: grid;
   grid-template-rows: repeat(8, minmax(0, 1fr));
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .row {
@@ -453,7 +486,7 @@ const dropDiagram = () => {
   }
 
   .sheet {
-    display: block !important;
+    display: flex !important;
     width: 100% !important;
     height: 279mm !important;
     aspect-ratio: auto !important;

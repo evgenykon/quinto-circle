@@ -345,8 +345,8 @@ const dropDiagram = () => {
   font-size: clamp(9px, 1.55vw, 14.4px);
   aspect-ratio: 210 / 297;
   background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 2px solid #000;
+  border-radius: 2px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
@@ -456,12 +456,12 @@ const dropDiagram = () => {
     width: 100% !important;
     height: 279mm !important;
     aspect-ratio: auto !important;
-    border: 0 !important;
+    border: 2px solid #000 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     break-after: page;
     page-break-after: always;
-    font-size: 3.6mm;
+    font-size: 3.6mm !important;
     color: #000;
   }
 

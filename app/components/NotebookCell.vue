@@ -231,8 +231,8 @@ const closeAll = () => {
   display: flex;
   min-height: 0;
   min-width: 0;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
   background: var(--background);
 }
 
@@ -278,7 +278,7 @@ const closeAll = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.18em;
+  gap: 0.32em;
   overflow: hidden;
   cursor: pointer;
   min-width: 0;

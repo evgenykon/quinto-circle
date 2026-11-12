@@ -67,6 +67,14 @@ check('сдвиг сохраняется до конца листа', nums[31] =
 const noRepeat = computeNumbers(emptyPage())
 check('без повторов номера 1…32', noRepeat.join(',') === Array.from({ length: 32 }, (_, i) => i + 1).join(','))
 
+// пропуск ячейки: белая ячейка без номера, нумерация идёт дальше
+const skipped = emptyPage()
+skipped.rows[0]!.cells[2]!.skip = true
+const skipNumbers = computeNumbers(skipped)
+check('пропущенная ячейка без номера', skipNumbers[2] === null, String(skipNumbers[2]))
+check('нумерация после пропуска не сдвигается', skipNumbers[3] === 3, String(skipNumbers[3]))
+check('последняя ячейка получает 31', skipNumbers[31] === 31, String(skipNumbers[31]))
+
 // повтор нормализуется из JSON
 const withRepeat = normalizeNotebook({
   pages: [{ rows: [{ cells: [{}, {}, {}, { repeat: { from: 0, times: 3 } }] }] }],
@@ -75,6 +83,8 @@ check('повтор сохраняется при загрузке',
   withRepeat.pages[0]!.rows[0]!.cells[3]!.repeat?.times === 3)
 const badRepeat = normalizeNotebook({ pages: [{ rows: [{ cells: [{ repeat: { from: 'x', times: 0 } }] }] }] })
 check('невалидный повтор отбрасывается', badRepeat.pages[0]!.rows[0]!.cells[0]!.repeat === null)
+const skipLoaded = normalizeNotebook({ pages: [{ rows: [{ cells: [{ skip: true }] }] }] })
+check('пропуск сохраняется при загрузке', skipLoaded.pages[0]!.rows[0]!.cells[0]!.skip === true)
 
 // одновременные ноты (одна колонка) и старый формат без колонок
 const simultaneous = normalizeNotebook({

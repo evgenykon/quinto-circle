@@ -26,6 +26,8 @@ export interface CellData {
   tab: TabNote[]
   /** Повтор: после этой ячейки возвращаемся к ячейке `from` ещё `times` раз. */
   repeat?: CellRepeat | null
+  /** Пропуск: ячейка остаётся пустой и не получает номер. */
+  skip?: boolean
 }
 
 export interface RowData {
@@ -107,6 +109,7 @@ export function normalizeNotebook(input: unknown): NotebookFile {
                   ? cell!.chords.filter((item) => typeof item === 'string').slice(0, CHORDS_PER_CELL)
                   : [],
                 note: typeof cell?.note === 'string' ? cell.note : '',
+                skip: cell?.skip === true,
                 repeat:
                   cell?.repeat
                   && typeof cell.repeat.from === 'number'
@@ -148,19 +151,30 @@ export function normalizeNotebook(input: unknown): NotebookFile {
  * Номера ячеек листа с учётом повторов: метка «повторить блок [from…index]
  * ещё times раз» сдвигает нумерацию всех последующих ячеек.
  */
-export function computeNumbers(page: PageData): number[] {
-  const numbers: number[] = []
+export function computeNumbers(page: PageData): (number | null)[] {
+  const numbers: (number | null)[] = []
   let shift = 0
+  let counter = 0
+
   page.rows.forEach((row, rowIndex) => {
     row.cells.forEach((cell, cellIndex) => {
       const index = rowIndex * COLUMNS + cellIndex
-      numbers[index] = index + 1 + shift
+      if (cell.skip) {
+        numbers[index] = null
+        return
+      }
+
+      counter += 1
+      numbers[index] = counter + shift
+
       const repeat = cell.repeat
-      if (repeat && repeat.times > 0 && repeat.from <= index) {
-        shift += repeat.times * (index - repeat.from + 1)
+      const fromNumber = repeat ? numbers[repeat.from] : null
+      if (repeat && repeat.times > 0 && typeof fromNumber === 'number' && fromNumber !== null) {
+        shift += repeat.times * (numbers[index]! - fromNumber + 1)
       }
     })
   })
+
   return numbers
 }
 

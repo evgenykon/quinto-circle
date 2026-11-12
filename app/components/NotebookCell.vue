@@ -11,6 +11,8 @@ const props = defineProps<{
   /** Номера всех ячеек листа (по индексу 0…31) — для поля «с ячейки». */
   numbers?: number[]
   repeat?: CellRepeat | null
+  /** Ячейка пропущена: белое поле без линий, текста и номера. */
+  skip?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +21,7 @@ const emit = defineEmits<{
   'open-diagram': []
   'open-tab': []
   'update:repeat': [repeat: CellRepeat | null]
+  'update:skip': [skip: boolean]
 }>()
 
 const menu = ref(false)
@@ -103,6 +106,11 @@ const saveRepeat = () => {
 
 const clearRepeat = () => {
   emit('update:repeat', null)
+  repeatMenu.value = false
+}
+
+const toggleSkip = () => {
+  emit('update:skip', !props.skip)
   repeatMenu.value = false
 }
 
@@ -207,9 +215,17 @@ onBeforeUnmount(() => {
   <div
     ref="rootRef"
     class="cell"
-    :class="{ 'cell--first': firstColumn, 'cell--repeat': repeat }"
+    :class="{ 'cell--first': firstColumn, 'cell--repeat': repeat, 'cell--skip': skip }"
     @click="closeAll"
   >
+    <button
+      v-if="skip"
+      type="button"
+      class="skip-blank"
+      aria-label="Пропущенная ячейка"
+      @click.stop="openRepeatMenu"
+    />
+    <template v-if="!skip">
     <button
       v-if="index"
       type="button"
@@ -295,6 +311,8 @@ onBeforeUnmount(() => {
       </form>
     </div>
 
+    </template>
+
     <div v-if="repeatMenu" class="popover popover--repeat" @click.stop>
       <span class="popover-title">Повтор блока</span>
       <form class="add-form" @submit.prevent="saveRepeat">
@@ -310,6 +328,9 @@ onBeforeUnmount(() => {
       </form>
       <button v-if="repeat" type="button" class="popover-item popover-item--danger" @click="clearRepeat">
         Убрать повтор
+      </button>
+      <button type="button" class="popover-item" @click="toggleSkip">
+        {{ skip ? 'Вернуть ячейку' : 'Пропуск' }}
       </button>
     </div>
 
@@ -393,6 +414,20 @@ onBeforeUnmount(() => {
 .cell--repeat {
   border-right: 4px double #000;
   border-left: 1px dashed #000;
+}
+
+.cell--skip {
+  border: 0 !important;
+  background: #fff;
+}
+
+.skip-blank {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: #fff;
+  cursor: pointer;
 }
 
 .popover--repeat {

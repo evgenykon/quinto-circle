@@ -35,8 +35,14 @@ const propsLine = computed(() => {
 })
 
 const pageNumbers = computed(() => {
-  const map = new Map<string, number[]>()
-  notebook.value.pages.forEach((page) => map.set(page.id, computeNumbers(page)))
+  const map = new Map<string, (number | null)[]>()
+  let next = 1
+  notebook.value.pages.forEach((page) => {
+    const numbers = computeNumbers(page, next)
+    map.set(page.id, numbers)
+    const max = numbers.reduce<number>((acc, value) => (typeof value === 'number' ? Math.max(acc, value) : acc), 0)
+    next = max + 1
+  })
   return map
 })
 
@@ -242,6 +248,7 @@ const dropDiagram = () => {
               :index="numbersFor(page)[rowIndex * COLUMNS + cellIndex] ?? undefined"
               :numbers="numbersFor(page)"
               :position="rowIndex * COLUMNS + cellIndex"
+              :last-row="rowIndex === page.rows.length - 1"
               :repeat="cell.repeat"
               :skip="cell.skip === true"
               :first-column="cellIndex === 0"

@@ -161,10 +161,10 @@ export function normalizeNotebook(input: unknown): NotebookFile {
  * Номера ячеек листа с учётом повторов: метка «повторить блок [from…index]
  * ещё times раз» сдвигает нумерацию всех последующих ячеек.
  */
-export function computeNumbers(page: PageData): (number | null)[] {
+export function computeNumbers(page: PageData, startNumber = 1): (number | null)[] {
   const numbers: (number | null)[] = []
   let shift = 0
-  let counter = 0
+  let counter = startNumber - 1
 
   page.rows.forEach((row, rowIndex) => {
     row.cells.forEach((cell, cellIndex) => {

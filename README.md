@@ -23,6 +23,11 @@ An interactive circle of fifths — a tool for exploring harmony, building chord
   Chords keep one colour (major warm, minor cold); clicking a chord shows its fingering on the neck
   ([`/tree`](https://evgenykon.github.io/quinto-circle/tree))
 
+- **Rehearsal notebook:** A4 page per screen with an 8×4 interactive table — part labels (Intro, Chorus…)
+  in a narrow vertical strip, up to 4 chords per cell, a note field, a chord diagram picker and a
+  tab editor (up to 8 notes). Multiple pages, autosave to localStorage, JSON export/import and printing
+  ([`/notebook`](https://evgenykon.github.io/quinto-circle/notebook))
+
 ## Getting started
 
 ```bash

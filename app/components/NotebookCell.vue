@@ -417,7 +417,7 @@ onBeforeUnmount(() => {
 }
 
 .cell--skip {
-  border: 0 !important;
+  /* Сетка остаётся целой: пустая ячейка только внутри. */
   background: #fff;
 }
 

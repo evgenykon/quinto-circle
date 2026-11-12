@@ -12,6 +12,8 @@ const props = defineProps<{
   numbers?: (number | null)[]
   /** Позиция ячейки на листе (0…31). */
   position?: number
+  /** Последняя строка листа: поповеры открываются вверх, чтобы не обрезались. */
+  lastRow?: boolean
   repeat?: CellRepeat | null
   /** Ячейка пропущена: белое поле без линий, текста и номера. */
   skip?: boolean
@@ -290,7 +292,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="menu" class="popover" @click.stop>
+    <div v-if="menu" class="popover" :class="{ 'popover--up': lastRow }" @click.stop>
       <template v-if="!adding">
         <button type="button" class="popover-item" @click="startAdd">Добавить аккорд</button>
         <button
@@ -318,7 +320,7 @@ onBeforeUnmount(() => {
 
     </template>
 
-    <div v-if="repeatMenu" class="popover popover--repeat" @click.stop>
+    <div v-if="repeatMenu" class="popover popover--repeat" :class="{ 'popover--up': lastRow }" @click.stop>
       <span class="popover-title">Повтор блока</span>
       <form class="add-form" @submit.prevent="saveRepeat">
         <label class="repeat-field">
@@ -339,7 +341,7 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
-    <div v-if="partMenu" class="popover popover--part" @click.stop>
+    <div v-if="partMenu" class="popover popover--part" :class="{ 'popover--up': lastRow }" @click.stop>
       <form class="add-form" @submit.prevent="commitPart">
         <input
           v-model="partDraft"
@@ -439,6 +441,11 @@ onBeforeUnmount(() => {
   right: 4px;
   left: auto;
   min-width: 210px;
+}
+
+.popover.popover--up {
+  top: auto;
+  bottom: 100%;
 }
 
 .popover-title {

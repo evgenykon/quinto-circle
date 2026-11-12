@@ -6,6 +6,8 @@ const props = defineProps<{
   cell: CellData
   part: string
   firstColumn?: boolean
+  /** Номер ячейки на листе (1…32). */
+  index?: number
 }>()
 
 const emit = defineEmits<{
@@ -126,6 +128,7 @@ const closeAll = () => {
 
 <template>
   <div class="cell" :class="{ 'cell--first': firstColumn }" @click="closeAll">
+    <span v-if="index" class="cell-number">{{ index }}</span>
     <button
       v-if="firstColumn"
       type="button"
@@ -236,6 +239,19 @@ const closeAll = () => {
   background: var(--background);
 }
 
+
+.cell-number {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  z-index: 2;
+  font-size: 0.5em;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  user-select: none;
+}
 
 .part-strip {
   flex: 0 0 25px;

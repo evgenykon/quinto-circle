@@ -190,6 +190,7 @@ const dropDiagram = () => {
               :key="`${page.id}-${rowIndex}-${cellIndex}`"
               :cell="cell"
               :part="row.part"
+              :index="rowIndex * COLUMNS + cellIndex + 1"
               :first-column="cellIndex === 0"
               class="cell-slot"
               @update:cell="updateCell(pageIndex, rowIndex, cellIndex, $event)"

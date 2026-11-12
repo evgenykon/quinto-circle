@@ -220,6 +220,7 @@ const dropDiagram = () => {
               :part="row.part"
               :index="numbersFor(page)[rowIndex * COLUMNS + cellIndex] ?? undefined"
               :numbers="numbersFor(page)"
+              :position="rowIndex * COLUMNS + cellIndex"
               :repeat="cell.repeat"
               :skip="cell.skip === true"
               :first-column="cellIndex === 0"

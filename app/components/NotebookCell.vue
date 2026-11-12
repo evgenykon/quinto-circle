@@ -9,7 +9,9 @@ const props = defineProps<{
   /** Показанный номер ячейки (с учётом повторов). */
   index?: number
   /** Номера всех ячеек листа (по индексу 0…31) — для поля «с ячейки». */
-  numbers?: number[]
+  numbers?: (number | null)[]
+  /** Позиция ячейки на листе (0…31). */
+  position?: number
   repeat?: CellRepeat | null
   /** Ячейка пропущена: белое поле без линий, текста и номера. */
   skip?: boolean
@@ -89,9 +91,12 @@ const openRepeatMenu = () => {
   }
 
   // По умолчанию — блок из 4 ячеек, заканчивающийся текущей (или с 1-й).
-  const selfPos = props.numbers?.indexOf(props.index ?? -1) ?? -1
-  const fromPos = selfPos > 0 ? Math.max(0, selfPos - 4) : 0
-  repeatFrom.value = String(props.numbers?.[fromPos] ?? 1)
+  const selfPos = props.position ?? 0
+  let fromPos = Math.max(0, selfPos - 3)
+  // пропущенные ячейки без номера — берём ближайшую слева с номером
+  while (fromPos > 0 && (props.numbers?.[fromPos] ?? null) === null) fromPos--
+  const fromNumber = props.numbers?.[fromPos] ?? props.numbers?.find((value) => value !== null) ?? 1
+  repeatFrom.value = String(fromNumber)
   repeatTimes.value = '1'
 }
 

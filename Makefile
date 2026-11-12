@@ -11,4 +11,4 @@ run:
 	docker compose -f docker-compose.dev.yml run --rm app $(cmd)
 
 test:
-	docker compose -f docker-compose.dev.yml run --rm app sh -c "node scripts/check-chords.ts && node scripts/check-tree.ts"
+	docker compose -f docker-compose.dev.yml run --rm app sh -c "node scripts/check-chords.ts && node scripts/check-tree.ts && node scripts/check-notebook.ts"

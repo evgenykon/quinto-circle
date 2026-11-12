@@ -8,6 +8,7 @@
       <nav class="nav">
         <NuxtLink to="/chords" class="nav-link">Определить аккорд →</NuxtLink>
         <NuxtLink to="/tree" class="nav-link">Дерево аккордов →</NuxtLink>
+        <NuxtLink to="/notebook" class="nav-link">Блокнот →</NuxtLink>
       </nav>
     </header>
 

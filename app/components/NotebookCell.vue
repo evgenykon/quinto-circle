@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
       <form class="add-form" @submit.prevent="saveRepeat">
         <label class="repeat-field">
           <span>с ячейки</span>
-          <input v-model="repeatFrom" class="add-input add-input--num" type="number" min="1" max="32">
+          <input v-model="repeatFrom" class="add-input add-input--num" type="number" min="1">
         </label>
         <label class="repeat-field">
           <span>раз</span>

@@ -79,10 +79,17 @@ const repeatLabel = computed(() => {
 
 const openRepeatMenu = () => {
   repeatMenu.value = true
-  repeatFrom.value = props.repeat
-    ? String(props.numbers?.[props.repeat.from] ?? props.repeat.from + 1)
-    : String(props.index ?? 1)
-  repeatTimes.value = props.repeat ? String(props.repeat.times) : '2'
+  if (props.repeat) {
+    repeatFrom.value = String(props.numbers?.[props.repeat.from] ?? props.repeat.from + 1)
+    repeatTimes.value = String(props.repeat.times)
+    return
+  }
+
+  // По умолчанию — блок из 4 ячеек, заканчивающийся текущей (или с 1-й).
+  const selfPos = props.numbers?.indexOf(props.index ?? -1) ?? -1
+  const fromPos = selfPos > 0 ? Math.max(0, selfPos - 4) : 0
+  repeatFrom.value = String(props.numbers?.[fromPos] ?? 1)
+  repeatTimes.value = '1'
 }
 
 const saveRepeat = () => {

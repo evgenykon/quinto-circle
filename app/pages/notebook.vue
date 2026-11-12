@@ -429,6 +429,15 @@ const dropDiagram = () => {
 }
 
 .sheet {
+  /* Лист всегда «бумажный»: в тёмной теме чёрные границы иначе не видны. */
+  --background: #ffffff;
+  --foreground: #111111;
+  --muted: #f2f2f2;
+  --muted-foreground: #666666;
+  --border: #d8d8d8;
+  --accent: #111111;
+  --accent-foreground: #ffffff;
+  color: #111111;
   /* Размер шрифта масштабируется от ширины листа (без container-type:
      в текущем Chromium layout-контейнер ломает отрисовку SVG внутри). */
   display: flex;

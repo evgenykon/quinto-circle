@@ -63,9 +63,19 @@ const repeatMenu = ref(false)
 const repeatFrom = ref('')
 const repeatTimes = ref('')
 
-const repeatLabel = computed(() =>
-  props.repeat ? `↺${props.numbers?.[props.repeat.from] ?? props.repeat.from + 1}×${props.repeat.times}` : '',
-)
+const timesWord = (count: number) => {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (mod10 === 1 && mod100 !== 11) return 'раз'
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'раза'
+  return 'раз'
+}
+
+const repeatLabel = computed(() => {
+  if (!props.repeat) return ''
+  const from = props.numbers?.[props.repeat.from] ?? props.repeat.from + 1
+  return `повтор с #${from}, ${props.repeat.times} ${timesWord(props.repeat.times)}`
+})
 
 const openRepeatMenu = () => {
   repeatMenu.value = true
@@ -159,10 +169,40 @@ const closeAll = () => {
   repeatMenu.value = false
 }
 
+const rootRef = ref<HTMLElement | null>(null)
+
+/** Клик вне ячейки и Esc закрывают все поповеры. */
+const onDocumentClick = (event: MouseEvent) => {
+  const target = event.target as Node | null
+  if (!target) return
+  if (rootRef.value && rootRef.value.contains(target)) return
+  closeAll()
+  if (editingNote.value) commitNote()
+}
+
+const onKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') closeAll()
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+  document.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
+  document.removeEventListener('keydown', onKeydown)
+})
+
 </script>
 
 <template>
-  <div class="cell" :class="{ 'cell--first': firstColumn, 'cell--repeat': repeat }" @click="closeAll">
+  <div
+    ref="rootRef"
+    class="cell"
+    :class="{ 'cell--first': firstColumn, 'cell--repeat': repeat }"
+    @click="closeAll"
+  >
     <button
       v-if="index"
       type="button"
@@ -170,7 +210,8 @@ const closeAll = () => {
       :class="{ 'cell-number--repeat': repeat }"
       @click.stop="openRepeatMenu"
     >
-      {{ index }}<span v-if="repeatLabel" class="cell-repeat">{{ repeatLabel }}</span>
+      <span class="cell-index">{{ index }}</span>
+      <span v-if="repeatLabel" class="cell-repeat">{{ repeatLabel }}</span>
     </button>
     <button
       v-if="firstColumn"
@@ -332,8 +373,13 @@ const closeAll = () => {
   background: var(--muted);
 }
 
-.cell-repeat {
+.cell-index {
   font-weight: 700;
+}
+
+.cell-repeat {
+  font-weight: 600;
+  font-size: 0.92em;
   color: var(--accent);
 }
 

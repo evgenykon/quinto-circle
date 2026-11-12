@@ -22,6 +22,18 @@ const storageKey = 'quinto-notebook-v1'
 
 const pages = computed(() => notebook.value.pages)
 
+/** Короткая строка свойств для шапки листа: темп · конфиг · пресет. */
+const propsLine = computed(() => {
+  const parts: string[] = []
+  const tempo = notebook.value.tempo.trim()
+  const config = notebook.value.config.trim()
+  const preset = notebook.value.preset.trim()
+  if (tempo) parts.push(`♩ ${tempo}`)
+  if (config) parts.push(config)
+  if (preset) parts.push(preset)
+  return parts.join(' · ')
+})
+
 const pageNumbers = computed(() => {
   const map = new Map<string, number[]>()
   notebook.value.pages.forEach((page) => map.set(page.id, computeNumbers(page)))
@@ -203,6 +215,7 @@ const dropDiagram = () => {
       <section v-for="(page, pageIndex) in pages" :key="page.id" class="sheet">
         <header class="sheet-head">
           <span class="sheet-title">{{ notebook.title }}</span>
+          <span v-if="propsLine" class="sheet-props">{{ propsLine }}</span>
           <span class="sheet-page">{{ pageIndex + 1 }} / {{ pages.length }}</span>
           <span class="sheet-tools">
             <button type="button" class="sheet-tool" @click="clearPage(page)">Очистить</button>
@@ -446,10 +459,22 @@ const dropDiagram = () => {
   text-overflow: ellipsis;
 }
 
+.sheet-props {
+  margin-left: auto;
+  padding-left: 0.6em;
+  font-size: 0.55em;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
 .sheet-page {
   font-size: 0.6em;
   color: var(--muted-foreground);
   flex: 0 0 auto;
+  padding-left: 0.8em;
 }
 
 .grid {

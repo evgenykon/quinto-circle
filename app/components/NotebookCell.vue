@@ -32,7 +32,7 @@ const partDraft = ref('')
 
 const chordsRef = ref<HTMLElement | null>(null)
 
-/** Подгоняет размер аккордов так, чтобы 4 штуки влезали в строку без переноса. */
+/** Подгоняет кегль аккордов: они раскладываются в 2 колонки (до 2 рядов). */
 const fitChords = () => {
   const el = chordsRef.value
   if (!el) return
@@ -502,9 +502,13 @@ onBeforeUnmount(() => {
 .quarter--chords {
   border-right: 1px dashed color-mix(in srgb, var(--muted-foreground) 35%, transparent);
   border-bottom: 1px dashed color-mix(in srgb, var(--muted-foreground) 35%, transparent);
-  flex-wrap: nowrap;
-  white-space: nowrap;
-  padding: 0 0.2em;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  align-content: center;
+  justify-content: center;
+  column-gap: 0.35em;
+  row-gap: 0.08em;
+  padding: 0.05em 0.15em;
 }
 
 .quarter--note {

@@ -38,10 +38,9 @@ const pageNumbers = computed(() => {
   const map = new Map<string, (number | null)[]>()
   let next = 1
   notebook.value.pages.forEach((page) => {
-    const numbers = computeNumbers(page, next)
-    map.set(page.id, numbers)
-    const max = numbers.reduce<number>((acc, value) => (typeof value === 'number' ? Math.max(acc, value) : acc), 0)
-    next = max + 1
+    const result = computeNumbers(page, next)
+    map.set(page.id, result.numbers)
+    next = result.next
   })
   return map
 })

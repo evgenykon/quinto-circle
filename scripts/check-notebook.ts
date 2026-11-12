@@ -60,11 +60,11 @@ check('невалидные ноты табов отброшены', badTabs.pag
 const numbered = emptyPage()
 for (let i = 0; i < 2; i++) numbered.rows[i]!.cells.forEach((c) => { c.chords = [] })
 numbered.rows[1]!.cells[3]!.repeat = { from: 4, times: 2 } // ячейка 8 → повтор с 5, 2 раза
-const nums = computeNumbers(numbered)
+const nums = computeNumbers(numbered).numbers
 check('номера до повтора: 1…8', nums.slice(0, 8).join(',') === '1,2,3,4,5,6,7,8', nums.slice(0, 8).join(','))
 check('после повтора нумерация сдвинута на 8', nums[8] === 17, String(nums[8]))
 check('сдвиг сохраняется до конца листа', nums[31] === 40, String(nums[31]))
-const noRepeat = computeNumbers(emptyPage())
+const noRepeat = computeNumbers(emptyPage()).numbers
 check('без повторов номера 1…32', noRepeat.join(',') === Array.from({ length: 32 }, (_, i) => i + 1).join(','))
 
 // свойства документа: темп / конфиг / пресет
@@ -77,10 +77,19 @@ check('пустые свойства документа по умолчанию'
 // пропуск ячейки: белая ячейка без номера, нумерация идёт дальше
 const skipped = emptyPage()
 skipped.rows[0]!.cells[2]!.skip = true
-const skipNumbers = computeNumbers(skipped)
+const skipNumbers = computeNumbers(skipped).numbers
 check('пропущенная ячейка без номера', skipNumbers[2] === null, String(skipNumbers[2]))
 check('нумерация после пропуска не сдвигается', skipNumbers[3] === 3, String(skipNumbers[3]))
 check('последняя ячейка получает 31', skipNumbers[31] === 31, String(skipNumbers[31]))
+
+// повтор в последней ячейке листа переносит сдвиг на следующий лист
+const lastCell = emptyPage()
+lastCell.rows[7]!.cells[3]!.repeat = { from: 28, times: 2 }
+const lastResult = computeNumbers(lastCell)
+check('повтор в последней ячейке: номер последней = 32', lastResult.numbers[31] === 32, String(lastResult.numbers[31]))
+check('повтор в последней ячейке: следующий лист начинается с 41', lastResult.next === 41, String(lastResult.next))
+const plainNext = computeNumbers(emptyPage()).next
+check('без повторов следующий лист начинается с 33', plainNext === 33, String(plainNext))
 
 // повтор нормализуется из JSON
 const withRepeat = normalizeNotebook({

@@ -21,15 +21,27 @@ const rows = computed(() => [5, 4, 3, 2, 1, 0].map((string) => ({ string, label:
 const armedStrings = computed(() => Object.keys(armed.value).map(Number))
 const armedCount = computed(() => armedStrings.value.length)
 
-const columns = computed(() => Math.max(draft.value.length, 1))
+const columnList = computed(() =>
+  [...new Set(draft.value.map((note) => note.column))].sort((a, b) => a - b),
+)
 
-/** Уже добавленные ноты на «стане»: колонка — порядок добавления. */
+const columns = computed(() => Math.max(columnList.value.length, 1))
+
+/** Ноты на «стане»: x — колонка, ноты одной колонки звучат одновременно. */
 const placed = computed(() =>
   draft.value.map((note, index) => ({
     key: `${note.string}-${note.fret}-${index}`,
     string: note.string,
-    left: ((index + 0.5) / columns.value) * 100,
+    left: ((columnList.value.indexOf(note.column) + 0.5) / columns.value) * 100,
     fret: note.fret,
+  })),
+)
+
+/** Группы нот по колонкам — для чипов под станом. */
+const groups = computed(() =>
+  columnList.value.map((column) => ({
+    column,
+    notes: draft.value.filter((note) => note.column === column),
   })),
 )
 
@@ -57,18 +69,20 @@ const canAdd = computed(
 
 const addArmed = () => {
   const next = [...draft.value]
+  // Все отмеченные струны попадают в одну колонку — это одновременные ноты.
+  const column = next.length ? Math.max(...next.map((note) => note.column)) + 1 : 0
   for (const string of armedStrings.value) {
     if (next.length >= TABS_PER_CELL) break
     const fret = Number.parseInt(armed.value[string] ?? '', 10)
     if (Number.isNaN(fret) || fret < 0 || fret > 24) continue
-    next.push({ string, fret })
+    next.push({ string, fret, column })
   }
   draft.value = next
   armed.value = {}
 }
 
-const removeAt = (index: number) => {
-  draft.value.splice(index, 1)
+const removeColumn = (column: number) => {
+  draft.value = draft.value.filter((note) => note.column !== column)
 }
 
 const clear = () => {
@@ -133,9 +147,10 @@ const apply = () => {
     </div>
 
     <div v-if="draft.length" class="notes">
-      <span v-for="(note, index) in draft" :key="`${note.string}-${note.fret}-${index}`" class="chip">
-        {{ label(note.string) }}·{{ note.fret }}
-        <button type="button" class="chip-remove" @click="removeAt(index)">×</button>
+      <span v-for="group in groups" :key="group.column" class="chip">
+        <span class="chip-index">{{ group.column + 1 }}</span>
+        {{ group.notes.map((note) => `${label(note.string)}·${note.fret}`).join(' ') }}
+        <button type="button" class="chip-remove" @click="removeColumn(group.column)">×</button>
       </span>
     </div>
 
@@ -204,9 +219,9 @@ const apply = () => {
 
 .dot {
   position: absolute;
-  left: 14%;
+  right: 2px;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   width: 44px;
   height: 21px;
   display: flex;
@@ -275,6 +290,12 @@ const apply = () => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.chip-index {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .chip {

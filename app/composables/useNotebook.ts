@@ -8,6 +8,8 @@ export interface TabNote {
   /** 0 — 6-я (нижняя) струна, 5 — 1-я. */
   string: number
   fret: number
+  /** Колонка табулатуры: ноты с одинаковой колонкой играются одновременно. */
+  column: number
 }
 
 export interface CellData {
@@ -105,9 +107,17 @@ export function normalizeNotebook(input: unknown): NotebookFile {
                   : null,
                 tab: Array.isArray(cell?.tab)
                   ? cell!.tab
-                      .filter((note) => typeof note?.string === 'number' && typeof note?.fret === 'number')
+                      .map((note, index) => ({ note, index }))
+                      .filter(({ note }) => typeof note?.string === 'number' && typeof note?.fret === 'number')
                       .slice(0, TABS_PER_CELL)
-                      .map((note) => ({ string: note.string, fret: note.fret }))
+                      .map(({ note, index }) => ({
+                        string: note.string,
+                        fret: note.fret,
+                        column:
+                          typeof (note as Partial<TabNote>).column === 'number'
+                            ? (note as TabNote).column
+                            : index,
+                      }))
                   : [],
               }
             }),

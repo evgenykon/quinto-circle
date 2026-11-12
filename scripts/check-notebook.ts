@@ -55,6 +55,24 @@ const badTabs = normalizeNotebook({
 })
 check('невалидные ноты табов отброшены', badTabs.pages[0]!.rows[0]!.cells[0]!.tab.length === 1)
 
+// одновременные ноты (одна колонка) и старый формат без колонок
+const simultaneous = normalizeNotebook({
+  pages: [{ rows: [{ cells: [{ tab: [
+    { string: 0, fret: 3, column: 0 },
+    { string: 1, fret: 2, column: 0 },
+    { string: 2, fret: 2, column: 1 },
+  ] }] }] }],
+})
+const simTab = simultaneous.pages[0]!.rows[0]!.cells[0]!.tab
+check('одновременные ноты в одной колонке', simTab.filter((n) => n.column === 0).length === 2, JSON.stringify(simTab))
+check('следующая нота в новой колонке', simTab.filter((n) => n.column === 1).length === 1)
+
+const legacy = normalizeNotebook({
+  pages: [{ rows: [{ cells: [{ tab: [{ string: 0, fret: 1 }, { string: 1, fret: 2 }] }] }] }],
+})
+check('старый формат: колонки по порядку',
+  legacy.pages[0]!.rows[0]!.cells[0]!.tab.map((n) => n.column).join(',') === '0,1')
+
 // сериализация туда-обратно
 const json = JSON.stringify(overflow)
 const back = normalizeNotebook(JSON.parse(json))

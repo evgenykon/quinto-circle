@@ -5,18 +5,21 @@ const props = defineProps<{ notes: TabNote[] }>()
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e']
 
-const sorted = computed(() =>
-  [...props.notes].sort((a, b) => a.fret - b.fret || a.string - b.string),
+const columnList = computed(() =>
+  [...new Set(props.notes.map((note) => note.column ?? 0))].sort((a, b) => a - b),
 )
 
-const columns = computed(() => Math.max(sorted.value.length, 1))
+const columns = computed(() => Math.max(columnList.value.length, 1))
 
 /** Текстовая табулатура: 6 строк, по клетке на каждую ноту. */
 const rows = computed(() =>
   [5, 4, 3, 2, 1, 0].map((string) => ({
     string,
     label: STRING_LABELS[string]!,
-    cells: sorted.value.map((note) => (note.string === string ? String(note.fret) : '')),
+    cells: columnList.value.map((column) => {
+      const note = props.notes.find((item) => (item.column ?? 0) === column && item.string === string)
+      return note ? String(note.fret) : ''
+    }),
   })),
 )
 </script>

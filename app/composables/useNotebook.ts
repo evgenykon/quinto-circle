@@ -43,6 +43,10 @@ export interface PageData {
 export interface NotebookFile {
   version: 1
   title: string
+  /** Свойства документа для репетиции. */
+  tempo: string
+  config: string
+  preset: string
   pages: PageData[]
 }
 
@@ -80,6 +84,9 @@ export const emptyPage = (index = 0): PageData => ({
 export const createNotebook = (): NotebookFile => ({
   version: 1,
   title: 'Репетиция',
+  tempo: '',
+  config: '',
+  preset: '',
   pages: [emptyPage()],
 })
 
@@ -93,6 +100,9 @@ export function normalizeNotebook(input: unknown): NotebookFile {
   return {
     version: 1,
     title: typeof source.title === 'string' && source.title.trim() ? source.title : 'Репетиция',
+    tempo: typeof source.tempo === 'string' ? source.tempo : '',
+    config: typeof source.config === 'string' ? source.config : '',
+    preset: typeof source.preset === 'string' ? source.preset : '',
     pages: (pages.length ? pages : [emptyPage()]).map((page, pageIndex) => {
       const rows = Array.isArray(page?.rows) ? page.rows : []
       return {

@@ -36,6 +36,13 @@ const updateRepeat = (pageIndex: number, rowIndex: number, cellIndex: number, re
   if (cell) cell.repeat = repeat
 }
 
+const updateSkip = (pageIndex: number, rowIndex: number, cellIndex: number, skip: boolean) => {
+  const cell = notebook.value.pages[pageIndex]?.rows[rowIndex]?.cells[cellIndex]
+  if (!cell) return
+  cell.skip = skip
+  if (skip) cell.repeat = null
+}
+
 const diagramEditor = ref<{ page: number; row: number; cell: number; value: ChordDiagramData | null } | null>(null)
 const tabEditor = ref<{ page: number; row: number; cell: number; value: TabNote[] } | null>(null)
 
@@ -211,9 +218,10 @@ const dropDiagram = () => {
               :key="`${page.id}-${rowIndex}-${cellIndex}`"
               :cell="cell"
               :part="row.part"
-              :index="numbersFor(page)[rowIndex * COLUMNS + cellIndex]"
+              :index="numbersFor(page)[rowIndex * COLUMNS + cellIndex] ?? undefined"
               :numbers="numbersFor(page)"
               :repeat="cell.repeat"
+              :skip="cell.skip === true"
               :first-column="cellIndex === 0"
               class="cell-slot"
               @update:cell="updateCell(pageIndex, rowIndex, cellIndex, $event)"
@@ -221,6 +229,7 @@ const dropDiagram = () => {
               @open-diagram="openDiagram(pageIndex, rowIndex, cellIndex)"
               @open-tab="openTab(pageIndex, rowIndex, cellIndex)"
               @update:repeat="updateRepeat(pageIndex, rowIndex, cellIndex, $event)"
+              @update:skip="updateSkip(pageIndex, rowIndex, cellIndex, $event)"
             />
           </div>
         </div>

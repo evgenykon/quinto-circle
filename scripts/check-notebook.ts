@@ -67,6 +67,13 @@ check('сдвиг сохраняется до конца листа', nums[31] =
 const noRepeat = computeNumbers(emptyPage())
 check('без повторов номера 1…32', noRepeat.join(',') === Array.from({ length: 32 }, (_, i) => i + 1).join(','))
 
+// свойства документа: темп / конфиг / пресет
+const withProps = normalizeNotebook({ title: 'T', tempo: '96', config: 'guitar-1', preset: 'clean', pages: [] })
+check('свойства документа читаются', `${withProps.tempo}/${withProps.config}/${withProps.preset}` === '96/guitar-1/clean',
+  `${withProps.tempo}/${withProps.config}/${withProps.preset}`)
+const emptyProps = normalizeNotebook({})
+check('пустые свойства документа по умолчанию', emptyProps.tempo === '' && emptyProps.config === '' && emptyProps.preset === '')
+
 // пропуск ячейки: белая ячейка без номера, нумерация идёт дальше
 const skipped = emptyPage()
 skipped.rows[0]!.cells[2]!.skip = true

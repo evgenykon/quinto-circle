@@ -16,12 +16,11 @@ import {
 useHead({ title: 'Блокнот для репетиций — quinto-circle' })
 
 const notebook = ref<NotebookFile>(createNotebook())
-const activePage = ref(0)
+const menuOpen = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const storageKey = 'quinto-notebook-v1'
 
 const pages = computed(() => notebook.value.pages)
-const currentPage = computed(() => pages.value[activePage.value] ?? pages.value[0]!)
 
 const pageNumbers = computed(() => {
   const map = new Map<string, number[]>()
@@ -87,17 +86,14 @@ const addPage = () => {
       cells: Array.from({ length: COLUMNS }, () => ({ chords: [], note: '', diagram: null, tab: [] })),
     })),
   })
-  activePage.value = notebook.value.pages.length - 1
 }
 
-const removePage = () => {
+const removePage = (pageIndex: number) => {
   if (notebook.value.pages.length <= 1) return
-  notebook.value.pages.splice(activePage.value, 1)
-  activePage.value = Math.min(activePage.value, notebook.value.pages.length - 1)
+  notebook.value.pages.splice(pageIndex, 1)
 }
 
-const clearPage = () => {
-  const page = currentPage.value
+const clearPage = (page: PageData) => {
   page.rows.forEach((row) => {
     row.part = ''
     row.cells = row.cells.map(() => ({ chords: [], note: '', diagram: null, tab: [] }))
@@ -123,7 +119,6 @@ const loadFile = async (event: Event) => {
   if (!file) return
   try {
     notebook.value = normalizeNotebook(JSON.parse(await file.text()))
-    activePage.value = 0
   } catch {
     window.alert('Не удалось прочитать файл блокнота')
   }
@@ -177,34 +172,47 @@ const dropDiagram = () => {
         <input v-model="notebook.title" class="title-input" type="text" aria-label="Название блокнота">
       </div>
 
-      <div class="toolbar-group">
-        <button type="button" class="button" :disabled="activePage === 0" @click="activePage--">←</button>
-        <span class="page-indicator">{{ activePage + 1 }} / {{ pages.length }}</span>
-        <button type="button" class="button" :disabled="activePage >= pages.length - 1" @click="activePage++">→</button>
+      <div class="toolbar-group toolbar-actions">
         <button type="button" class="button" @click="addPage">+ страница</button>
-        <button type="button" class="button" :disabled="pages.length <= 1" @click="removePage">Удалить</button>
-      </div>
-
-      <div class="toolbar-group">
-        <button type="button" class="button" @click="clearPage">Очистить лист</button>
         <button type="button" class="button" @click="saveFile">Сохранить</button>
         <button type="button" class="button" @click="openFile">Загрузить</button>
         <button type="button" class="button button--primary" @click="print">Печать</button>
       </div>
 
+      <button type="button" class="menu-button" aria-label="Меню" @click="menuOpen = true">☰</button>
+
       <input ref="fileInput" class="hidden-input" type="file" accept="application/json,.json" @change="loadFile">
     </header>
 
+    <section class="doc-props">
+      <label class="prop">
+        <span class="prop-label">Темп</span>
+        <input v-model="notebook.tempo" class="prop-input" type="text" placeholder="120">
+      </label>
+      <label class="prop">
+        <span class="prop-label">Конфиг</span>
+        <input v-model="notebook.config" class="prop-input" type="text" placeholder="—">
+      </label>
+      <label class="prop">
+        <span class="prop-label">Пресет</span>
+        <input v-model="notebook.preset" class="prop-input" type="text" placeholder="—">
+      </label>
+    </section>
+
     <div class="sheets">
-      <section
-        v-for="(page, pageIndex) in pages"
-        :key="page.id"
-        class="sheet"
-        :class="{ 'sheet--hidden': pageIndex !== activePage }"
-      >
+      <section v-for="(page, pageIndex) in pages" :key="page.id" class="sheet">
         <header class="sheet-head">
           <span class="sheet-title">{{ notebook.title }}</span>
           <span class="sheet-page">{{ pageIndex + 1 }} / {{ pages.length }}</span>
+          <span class="sheet-tools">
+            <button type="button" class="sheet-tool" @click="clearPage(page)">Очистить</button>
+            <button
+              v-if="pages.length > 1"
+              type="button"
+              class="sheet-tool sheet-tool--danger"
+              @click="removePage(pageIndex)"
+            >Удалить</button>
+          </span>
         </header>
 
         <div class="grid">
@@ -235,6 +243,31 @@ const dropDiagram = () => {
           </div>
         </div>
       </section>
+
+      <button type="button" class="add-page" @click="addPage">+ Добавить страницу</button>
+    </div>
+
+    <div v-if="menuOpen" class="menu-overlay" @click.self="menuOpen = false">
+      <div class="menu-panel">
+        <div class="menu-props">
+          <label class="prop">
+            <span class="prop-label">Темп</span>
+            <input v-model="notebook.tempo" class="prop-input" type="text" placeholder="120">
+          </label>
+          <label class="prop">
+            <span class="prop-label">Конфиг</span>
+            <input v-model="notebook.config" class="prop-input" type="text" placeholder="—">
+          </label>
+          <label class="prop">
+            <span class="prop-label">Пресет</span>
+            <input v-model="notebook.preset" class="prop-input" type="text" placeholder="—">
+          </label>
+        </div>
+        <button type="button" class="menu-item" @click="addPage(); menuOpen = false">Добавить страницу</button>
+        <button type="button" class="menu-item" @click="saveFile(); menuOpen = false">Сохранить в файл</button>
+        <button type="button" class="menu-item" @click="openFile(); menuOpen = false">Загрузить из файла</button>
+        <button type="button" class="menu-item" @click="print(); menuOpen = false">Печать</button>
+      </div>
     </div>
 
     <Teleport to="body">
@@ -370,7 +403,9 @@ const dropDiagram = () => {
 
 .sheets {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
 }
 
 .sheet {
@@ -489,6 +524,161 @@ const dropDiagram = () => {
 </style>
 
 <style>
+
+.doc-props {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.prop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prop-label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.prop-input {
+  width: 120px;
+  padding: 6px 9px;
+  font-size: 13px;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.menu-button {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.menu-panel {
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--background);
+  border-radius: 16px 16px 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.menu-props {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-props .prop {
+  justify-content: space-between;
+}
+
+.menu-props .prop-input {
+  width: 60%;
+}
+
+.menu-item {
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.sheet-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.sheet-tool {
+  padding: 2px 8px;
+  font-size: 0.5em;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.sheet-tool:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.sheet-tool--danger:hover {
+  color: #c0392b;
+}
+
+.add-page {
+  align-self: center;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.add-page:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .toolbar-actions,
+  .doc-props {
+    display: none !important;
+  }
+
+  .menu-button {
+    display: inline-flex !important;
+  }
+
+  .toolbar {
+    position: sticky;
+    top: 0;
+  }
+}
+
 @page {
   size: A4 portrait;
   margin: 6mm;
@@ -500,6 +690,11 @@ const dropDiagram = () => {
   }
 
   .toolbar,
+  .doc-props,
+  .menu-button,
+  .menu-overlay,
+  .sheet-tools,
+  .add-page,
   .modal {
     display: none !important;
   }

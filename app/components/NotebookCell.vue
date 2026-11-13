@@ -385,7 +385,9 @@ onBeforeUnmount(() => {
   min-height: 0;
   min-width: 0;
   border-right: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
-  border-bottom: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
+  /* горизонтальные линии рисует строка (.row) — иначе у пропущенных ячеек
+     в печати линия перекрывается белой заливкой соседа */
+  border-bottom: 0;
   background: var(--background);
 }
 
@@ -437,8 +439,9 @@ onBeforeUnmount(() => {
 }
 
 .cell--skip {
-  /* Сетка остаётся целой: пустая ячейка только внутри. */
-  background: #fff;
+  /* Сетка остаётся целой: пустая ячейка только внутри.
+     Фон прозрачный — иначе в печати белая заливка перекрывает линию снизу. */
+  background: transparent;
 }
 
 .skip-blank {
@@ -446,7 +449,7 @@ onBeforeUnmount(() => {
   height: 100%;
   padding: 0;
   border: 0;
-  background: #fff;
+  background: transparent;
   cursor: pointer;
 }
 

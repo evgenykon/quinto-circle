@@ -247,9 +247,10 @@ onBeforeUnmount(() => {
       v-if="firstColumn"
       type="button"
       class="part-strip"
+      :class="{ 'part-strip--filled': part }"
       @click.stop="openPartMenu"
     >
-      <span class="part-text">{{ part || 'Часть' }}</span>
+      <span v-if="part" class="part-text">{{ part }}</span>
     </button>
 
     <div class="quarters">
@@ -371,8 +372,8 @@ onBeforeUnmount(() => {
   display: flex;
   min-height: 0;
   min-width: 0;
-  border-right: var(--nb-cell-border, 2px) solid var(--nb-border-color, #000);
-  border-bottom: var(--nb-cell-border, 2px) solid var(--nb-border-color, #000);
+  border-right: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
+  border-bottom: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
   background: var(--background);
 }
 
@@ -472,12 +473,28 @@ onBeforeUnmount(() => {
   width: 25px;
   padding: 2px 0;
   border: 0;
-  border-right: 1px dashed var(--border);
-  background: var(--muted);
+  border-right: 1px dashed color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+  background: transparent;
+  opacity: 0.35;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.part-strip:hover {
+  opacity: 1;
+  background: var(--muted);
+}
+
+.part-strip--filled {
+  opacity: 1;
+  background: #111;
+}
+
+.part-strip--filled:hover {
+  background: #000;
 }
 
 .part-text {
@@ -486,7 +503,7 @@ onBeforeUnmount(() => {
   font-size: 0.72em;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--muted-foreground);
+  color: #f5f5f5;
   white-space: nowrap;
 }
 

@@ -28,6 +28,15 @@ const emit = defineEmits<{
   'update:skip': [skip: boolean]
 }>()
 
+/** Цветовое выделение частей: припев — тёмный, бридж — светло-серый, pre-chorus/solo — серый. */
+const partTone = computed(() => {
+  const value = props.part.trim().toLowerCase()
+  if (/^(chorus|припев)/.test(value)) return 'chorus'
+  if (/^(bridge|бридж)/.test(value)) return 'bridge'
+  if (/^(pre[-\s]?chorus|предприпев|solo|соло)/.test(value)) return 'grey'
+  return ''
+})
+
 const menu = ref(false)
 const adding = ref(false)
 const draft = ref('')
@@ -247,7 +256,10 @@ onBeforeUnmount(() => {
       v-if="firstColumn"
       type="button"
       class="part-strip"
-      :class="{ 'part-strip--filled': part }"
+      :class="{ 'part-strip--filled': part, 'part-strip--accent': partTone === 'chorus',
+        'part-strip--bridge': partTone === 'bridge',
+        'part-strip--pre': partTone === 'grey',
+      }"
       @click.stop="openPartMenu"
     >
       <span v-if="part" class="part-text">{{ part }}</span>
@@ -490,11 +502,38 @@ onBeforeUnmount(() => {
 
 .part-strip--filled {
   opacity: 1;
+  background: transparent;
+}
+
+.part-strip--filled .part-text {
+  color: var(--foreground);
+}
+
+.part-strip--accent,
+.part-strip--accent:hover {
   background: #111;
 }
 
-.part-strip--filled:hover {
-  background: #000;
+.part-strip--accent .part-text {
+  color: #f5f5f5;
+}
+
+.part-strip--bridge,
+.part-strip--bridge:hover {
+  background: #cccccc;
+}
+
+.part-strip--bridge .part-text {
+  color: #111111;
+}
+
+.part-strip--pre,
+.part-strip--pre:hover {
+  background: #aaaaaa;
+}
+
+.part-strip--pre .part-text {
+  color: #111111;
 }
 
 .part-text {

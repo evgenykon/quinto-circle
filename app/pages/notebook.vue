@@ -750,6 +750,8 @@ const dropDiagram = () => {
   }
 
   .sheet {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     display: flex !important;
     width: 100% !important;
     height: 279mm !important;
@@ -763,8 +765,8 @@ const dropDiagram = () => {
     page-break-after: always;
     font-size: 3.6mm !important;
     color: #000;
-    --nb-cell-border: 1px;
-    --nb-sheet-border: 1px;
+    --nb-cell-border: 0.3mm;
+    --nb-sheet-border: 0.3mm;
   }
 
   .sheet:last-of-type {

@@ -28,6 +28,15 @@ const emit = defineEmits<{
   'update:skip': [skip: boolean]
 }>()
 
+/** Цветовое выделение частей: припев — тёмный, бридж — светло-серый, pre-chorus/solo — серый. */
+const partTone = computed(() => {
+  const value = props.part.trim().toLowerCase()
+  if (/^(chorus|припев)/.test(value)) return 'chorus'
+  if (/^(bridge|бридж)/.test(value)) return 'bridge'
+  if (/^(pre[-\s]?chorus|предприпев|solo|соло)/.test(value)) return 'grey'
+  return ''
+})
+
 const menu = ref(false)
 const adding = ref(false)
 const draft = ref('')
@@ -247,9 +256,13 @@ onBeforeUnmount(() => {
       v-if="firstColumn"
       type="button"
       class="part-strip"
+      :class="{ 'part-strip--filled': part, 'part-strip--accent': partTone === 'chorus',
+        'part-strip--bridge': partTone === 'bridge',
+        'part-strip--pre': partTone === 'grey',
+      }"
       @click.stop="openPartMenu"
     >
-      <span class="part-text">{{ part || 'Часть' }}</span>
+      <span v-if="part" class="part-text">{{ part }}</span>
     </button>
 
     <div class="quarters">
@@ -371,8 +384,8 @@ onBeforeUnmount(() => {
   display: flex;
   min-height: 0;
   min-width: 0;
-  border-right: var(--nb-cell-border, 2px) solid var(--nb-border-color, #000);
-  border-bottom: var(--nb-cell-border, 2px) solid var(--nb-border-color, #000);
+  border-right: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
+  border-bottom: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
   background: var(--background);
 }
 
@@ -472,12 +485,55 @@ onBeforeUnmount(() => {
   width: 25px;
   padding: 2px 0;
   border: 0;
-  border-right: 1px dashed var(--border);
-  background: var(--muted);
+  border-right: 1px dashed color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+  background: transparent;
+  opacity: 0.35;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.part-strip:hover {
+  opacity: 1;
+  background: var(--muted);
+}
+
+.part-strip--filled {
+  opacity: 1;
+  background: transparent;
+}
+
+.part-strip--filled .part-text {
+  color: var(--foreground);
+}
+
+.part-strip--accent,
+.part-strip--accent:hover {
+  background: #111;
+}
+
+.part-strip--accent .part-text {
+  color: #f5f5f5;
+}
+
+.part-strip--bridge,
+.part-strip--bridge:hover {
+  background: #cccccc;
+}
+
+.part-strip--bridge .part-text {
+  color: #111111;
+}
+
+.part-strip--pre,
+.part-strip--pre:hover {
+  background: #aaaaaa;
+}
+
+.part-strip--pre .part-text {
+  color: #111111;
 }
 
 .part-text {
@@ -486,7 +542,7 @@ onBeforeUnmount(() => {
   font-size: 0.72em;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--muted-foreground);
+  color: #f5f5f5;
   white-space: nowrap;
 }
 

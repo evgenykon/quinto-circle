@@ -504,6 +504,11 @@ const dropDiagram = () => {
   grid-template-columns: calc(25% + 25px) 1fr 1fr 1fr;
   min-height: 0;
   min-width: 0;
+  border-bottom: var(--nb-cell-border, 1.5px) solid var(--nb-border-color, #000);
+}
+
+.grid > .row:last-child {
+  border-bottom: 0;
 }
 
 .cell-slot {
